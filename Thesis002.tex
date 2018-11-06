@@ -1,0 +1,739 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{amsmath}  
+\usepackage{amsfonts} 
+\usepackage{graphicx} 
+\usepackage[usenames]{color}
+\usepackage{mathtools}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{float}
+
+
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclareMathOperator{\esssupp}{ess\,supp}
+
+
+ \textwidth=16cm \hoffset = -1.9cm
+ \lineskip=1.5\lineskip
+
+
+% MATH -----------------------------------------------------------
+\newcommand{\Real}{\mathbb R}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\diag}{\mathrm{diag}}
+\newcommand{\nbr}{\mathrm{nbr}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\Hil}{\mathscr{H}}
+\newcommand{\LL}{\mathcal{L}}
+\newcommand{\G}{\mathscr{G}}
+\newcommand{\s}{\mathbb{S}}
+\newcommand{\p}{\mathscr{P}}
+\newcommand{\C}{\mathscr{C}}
+\newcommand{\one}[1]{\mathbf{1}_{\{#1\}}}
+\newcommand{\oneset}[1]{\mathbf{1}_{#1}}
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\Q}{\mathsf{Q}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\osimplex}{\mathcal{S}^{d-1}}
+\newcommand{\csimplex}{\bar{\mathcal{S}}^{d-1}}
+\newcommand{\argmin}{\mathrm{argmin}}
+\newcommand{\argmax}{\mathrm{argmax}}
+\newcommand{\var}{\mathrm{Var}}
+\newcommand{\cov}{\mathrm{Cov}}
+\newcommand{\ind}{\mathrm{I}}
+\newcommand{\D}{\mathscr{D}}
+\newcommand{\Borel}{\mathscr{B}}
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\Z}{\mathcal{Z}}
+\renewcommand{\d}[1]{\ensuremath{\operatorname{d}\!{#1}}}
+
+\newcommand{\ben}{\begin{enumerate}}
+\newcommand{\een}{\end{enumerate}}
+\newcommand{\ds}{\displaystyle}
+
+\DeclareMathOperator{\trace}{tr}
+\DeclareMathOperator*{\esssup}{ess~sup}
+\DeclareMathOperator*{\essinf}{ess~inf}
+\DeclareMathOperator*{\diam}{diam}
+\DeclareMathOperator*{\ROC}{ROC}
+\DeclareMathOperator*{\sinc}{sinc}
+\DeclareMathOperator*{\sign}{sign}
+\newcommand{\voila}{\hfill $\blacksquare$}
+\newcommand{\Id}{\mathrm{Id}}
+\newcommand{\K}{\mathbb{K}}
+\renewcommand{\Re}{\mathrm{Re}}
+
+
+
+\title{Sequential importance sampling \\ with corrections for partially observed states}
+
+
+\author{Valentina Di Marco, Johathan Keith}
+
+
+\date{\today}
+
+
+
+\begin{document}
+ \maketitle
+
+
+
+\begin{abstract}
+We consider an evolving system for which a sequence of observations is being made, with each observation revealing additional information about current and past states of the system. We suppose each observation is made without error, but does not fully determine the state of the system at the time it is made. Our motivating example is drawn from invasive species biology, where it is common to know the precise location of invasive organisms that have been detected by a surveillance program, but at any time during the program there are invaders that have not been detected.
+
+We propose a sequential importance sampling strategy to infer parameters under a Bayesian model of such a system. The strategy involves simulating multiple alternative states consistent with current knowledge of the system, as revealed by the observations. However, a difficult problem that arises is that observations made at a later time are invariably incompatible with previously simulated states.
+
+To solve this problem, we propose a two-step iterative process in which states of the system are alternately simulated in accordance with past observations, then corrected in light of new observations. We identify criteria under which such corrections can be made while maintaining appropriate importance weights.
+\end{abstract}
+
+
+\section{Introduction}
+
+Invasive species are non-native species that spread to a new environment beyond their accepted normal distribution and that are often introduced because of human activities. These invasions can have a substantial impact on the new ecosystem and the economy of the area, and often have adverse effects on human health \cite{Mack}. 
+
+Eradication and management plans are costly and often end up being ineffective. This is true especially when the invasion is spread to a large region, since not all individuals can be detected during a survey and it is often impracticable to monitor the entire area of the invasion. Predicting spatial and temporal trends in biological invasions is vital to the development of successful management strategies and can help determine if existing eradication strategies are effective.
+
+Historically, the spatial spread of invasive species was modelled with purely deterministic mathematical methods using life-history data. However, the life-history data from the species' native range is not always a good representation of the introduced environment, for example in the case where natural enemies in the new ecosystem are missing \cite{Broennimann}. 
+
+Using statistical models with data collected during monitoring or eradication programs to predict the future rate of spread can be a solution to this issue \cite{Hastings}. Data obtained this way is usually incomplete and imperfect as not all existing individuals can be detected, therefore it is important to quantify the effect of uncertainties when modelling the spread of the invasive species if these predictions are going to be used to plan and assess future or existing management strategies. 
+
+In environmental Niche-Based approaches, which are often used to estimate the risk of biological invasions, the species is assumed to be in equilibrium with the environment \cite{Veloz}, which is not always the correct assumption when the expansion of the invasion is still in progress.
+
+Different Bayesian approaches have been used to model the spread of invasive species. For example, Hooten and Wikle \cite{Hooten} proposed a grid-based hierarchical Bayesian model, while Keith and Spring \cite{Keith} developed an Agent-based approach applied to the fire ants’ invasion in Australia. %expand and perhaps include Schmidt \cite{Schmidt}
+
+%most of the following text have been copied and needs rephrasing. It might also be too long for an introduction so it is more for my understanding.
+The model of Keith and Spring focused on reconstructing the historical trajectory of the invasion to determine if the current eradication strategy was successful. Their method consisted in constructing a likelihood model in terms of some unknown parameters that included, among other things, the phylogeny, jump type, founding type and treatment success rate. They then constructed the dependencies among the known and unknown parameters and defined all conditional distributions. 
+
+According to Bayes' rule the posterior distribution over the space of all unknowns is proportional to the product of the prior and conditional distributions. The posterior distribution was then sampled using a generalised Gibbs technique that is a form of Markov Chain Monte Carlo (MCMC) that enables transdimensional sampling, which is used when the number of parameters is unknown, as in this case.
+
+They concluded with their analysis that although the invasion was deemed to be almost eradicated in 2004, the geographic range continued in fact to expand despite a sharp decline in number of nests. They also showed that eradication would probably have been achieved with a relatively small increase in the areas searched and treated. Their method can also have applications in the inference of the locations of living nests, to inform eradication efforts.
+
+%Many invasions occupy a large area at low density with most individuals forming clusters because of local dispersal. %New clusters are created by long-distance "jumps" which are often human assisted \cite{Suarez}.
+
+In our model we use a self-exciting spatio-temporal point process. These kinds of processes are well suited to model clustering behaviour \cite{Reinhart}. They model events whose rate depends on the history of the process. An alternative approach would be to divide the space into cells, either on a grid or following natural boundaries. While this approach has many applications, it has the disadvantage of being dependent on the boundaries of the grids chosen \cite{Fotheringham}. In point processes we can model the rate of events directly and we don't need to consider aggregation \cite{Reinhart}.
+
+Using the conditional intensity of a Hawkes process we can easily get an expression for the likelihood function which can then be maximised numerically.
+
+Invasive species modelling involves estimation of unknown quantities from observed data. Because prior knowledge about the phenomenon modelled is often available, a Bayesian framework is suitable.
+When new data becomes available sequentially in time, it will be necessary to update the posterior distribution with this new information.
+In some cases, it is possible to obtain analytical solutions (Kalman Filter and Hmm Filter) to compute the evolving sequence of posterior distributions, however, data is often complex and analytical solutions might be precluded.
+Sequential Monte Carlo (SMC) methods are one of many solutions that can deal with this issue. Other possible approaches are Kalman filter, Gaussian sum approximations and grid-based filters.
+If we have many samples from the posterior distribution we can approximate these integrals. 
+
+When it is impossible to obtain samples from these distributions directly we can use alternative Monte Carlo methods, like importance sampling.
+
+Importance sampling however has the drawback that every time new data becomes available, one needs to recompute the importance weights over the entire state sequence. This means that as the time increases the computational complexity increases.
+
+Sequential importance sampling is a modification of importance sampling that can overcome this problem
+
+
+
+%What happens when new data is incompatible with previously simulated particles
+
+
+\cite{Ducet}
+
+We propose...
+ 
+
+The method is applied to the red imported fire ants (\textit{Solenopsis invicta}) invasion in Brisbane Australia. The eradication program of the red imported fire ants is Australia's largest eradication program in terms of spatial extent and data collected. %It costed over \$250 million and extend to a region of ~190 km by 200 km. (get updated data from Danny)
+
+
+
+
+
+
+
+
+
+
+\section{Spatial-Temporal Point Processes}
+
+
+A spatial-temporal point process \textit{N} is a random collection of points, where each point represents the time and location of an event.
+It is defined as a random measure on a region $S \subseteq \mathbb{R} \times \mathbb{R}^2$ of space-time, taking values in the non negative integers $\mathbb{Z}^+$. The measure $N(A)$ represents the number of points falling in a subset $A$ of $S$ \cite{Shoenberg}.
+
+Any analytic spatial-temporal point process is uniquely characterised by its associated conditional rate process $\lambda$. 
+
+Formally, the conditional rate $\lambda(t,x,y)$ associated with a spatial-temporal point process $N$ may be defined as the limiting conditional expectation
+
+\[
+\lim_{\Delta t, \Delta x, \Delta y, \Delta z \to 0} \frac{ E [ N \{ ( t, t + \Delta t ) \times  ( x, x + \Delta x) \times  ( y, y + \Delta y) \times  ( z, z + \Delta z)\} | H_{t} ]}{\Delta t \Delta x \Delta y \Delta z}
+\]
+The intuitive interpretation of the conditional intensity function is the mean number of points falling in an infinitesimal interval around $t, x, y, z$ given the knowledge about all points in the past.
+
+
+$\lambda$ is a predictable process whose integral $C$, called the compensator, is such that $ N - C $ is a martingale.
+
+A predictable process is a real-valued stochastic process whose values are known, in a sense, just in advance of time (A stochastic process being a time sequence representing the evolution of some system represented by a variable whose change is subject to a random variation). 
+
+Suppose we have a filtration $(F_{n})_{n \in \mathbb{Z}_{+}}$ on a measurable space $(\Omega, F)$. Then a stochastic process $X_{n}$ is predictable if $X_{n}$ is $F_{n-1}$ measurable for every $n \geq 1$ and $X_{0}$ is $F_{0}$-measurable. So, the value of $X_{n}$ is known at the previous time step.
+
+A Filtration $F$ is an index set $S_{i}$ of subobjects of a given algebraic structure $S$, with the index $i$ running over some index set $I$ that is a totally ordered set, subject to the condition that 
+
+\[
+if  \quad  i \geq j, \quad then \quad  S_{i} \subseteq S_{j}
+\] 
+A martingale (discrete-time) is a sequence of random variables $x_{1}, ... , x_{n}$ that satisfies for any time $n$
+
+\[
+E(|x_{n}|) < \infty
+\]
+
+\[
+E(x_{n+1} | x_{1}, ... , x_{n}) = x_{n}
+\]
+The behavior of a spatial-temporal point process $N$ is typically modelled by specifying a functional form for $\lambda(t,x,y,z)$, which represents the infinitesimal expected rate of events at time $t$ and location$(x,y,z)$, given all the observations up to time $t$. It is common to estimate $\lambda$ via a parametric model.
+
+When $N$ is a Poisson process $\lambda$ is deterministic and will only depend on $(t,x,y,z)$. The simplest model is stationary Poisson, where the conditional rate is constant $\lambda(t,x,y,z)=\alpha$ for all $(t,x,y,z)$.
+
+Stationary spatial-temporal point processes are sometimes describes by the second order parameter measure $\rho(t', x', y', z')$ which measures the covariance between the numbers of points in spatial-temporal regions $A$ and $B$, where region $B$ is $A$ shifted by $(t', x', y', z')$.
+
+For self-exciting point process, the function $\rho$ is positive for small values of $t'$, $x'$, $y'$, and $z'$. Thus the occurrence of points in a self-exciting point process is associated with other points occurring nearby in space-time.
+
+A commonly used form for self-exciting point process models is a spatial-temporal generalization of the Hawkes model, where $\lambda(t,x,y,z)$ may be written as
+
+\[
+\mu(t,x,y,z) + \int_{T_{0}}^{t} \int_{x'} \int_{y'} \int_{z'} \nu (t-t', x-x', y-y', z-z') \d N (t', x', y', z')
+\]
+Where the functions $\mu$ and $\nu$ are respectively the deterministic background rate and the clustering density.
+
+When the temporal behavior as well as the behavior along each spatial coordinates can be considered independent, $\lambda$ can be modeled as a product of marginal conditional intensities 
+
+\[
+\lambda(t,x,y,z,) = \lambda_{1}(t) \lambda_{2}(x) \lambda_{3}(y) \lambda_{4}(z)
+\]
+The parameter vector $\theta$ for a model with conditional rate $\lambda (t, x, y, z; \theta)$ is usually estimated by maximising the likelihood function.
+
+To calculate the likelihood function we need first to define the Janossy density \cite{Reinhart}. 
+
+For simplicity, let's consider only a temporal point process, we can then generalise to the spatio-temporal case.
+Let us take the set of events times $\{t_{1}, t_{2},  ... , t_{n} \}$ in a set $T$. The Janossy density is then defined by the Janossy measure $J_{n}$:
+
+\[
+J_{n}(A_{1} \times ... \times A_{n}) = n! p_{n} \prod_{n}^{sym} (A_{1} \times ... \times A_{n})
+\]
+where the total number of events is n, $p_{n}$ is the probability of a realization of the process containing exactly $n$ events, $(A_{1}, . . . , A_{n})$ is a partition of $T$ where $A_{i}$ represents possible times for event $i$, and $\prod_{n}^{sym}(\cdot)$ is a symmetric probability measure determining the joint distribution of the times of events in the process, given there are $n$ total events.
+
+The Janossy measure is not a probability measure: it represents the sum of the probabilities of all $n!$ permutations of $n$ points. It is nonetheless useful, as its density $j_{n}(t_{1}, . . . , t_{n}) dt_{1} ... dt_{n}$ has an intuitive interpretation as the probability that there are exactly n events in the process, one in each of the $n$ infinitesimal intervals $(t_{i}, t_{i} + dt_{i})$.
+
+Therefore the likelihood function can be rewritten as:
+
+\[
+L_{T}(t_{1}, ... , t_{n}) = j_{n}(t_{1}, ... ,t_{n} | T)
+\]
+for a process on a bounded Borel set of times T. For simplicity we will consider times in the interval $[0, T)$. Here $ j_{n}(t_{1}, ... ,t_{n} | T)$ denotes the local Janossy density, interpreted as the probability that there are exactly $n$ events in the process before time $T$, one in each of the infinitesimal intervals.
+
+The likelihood can be rewritten in terms of the conditional intensity function, by connection with survival and hazard functions. 
+The conditional survivor functions are defined as:
+
+\[
+S_{k}(t | t_{1}, ... , t_{k - 1})) = Pr(t_{k} > t | t_{1}, ... , t_{k - 1}). 
+\]
+Using these functions and the conditional probability densities $p_{k}(t | t_{1}, ... , t_{k-1})$ of event times, we can write the Janossy density recursively as
+
+\[
+j_{n}(t_{1}, ... ,t_{n} | T) = p_{1}(t_{1})p_{2}(t_{2} | t_{1}) ...p_{n}(t_{n} | t_{1}, ..., t_{n - 1}) \times S_{n+1} (T | t_{1}, ... ,t_{n}).
+\]
+The hazard function is defined as
+
+\[
+h_{k}(t | t_{1}, ... , t_{k_{1}}) = \frac{p_{k}(t | t_{1}, ... , t_{k - 1})}{S_{k}(t | t_{1}, ... , t_{k - 1})} = - \frac{\d ( \log S_{k}(t | t_{1}, ... , t_{k - 1}))}{\d t}
+\]
+The hazard function has a natural interpretation as the conditional instantaneous event rate—which means the conditional intensity $\lambda (t)$ can be written directly in terms of the hazard functions:
+
+\[
+\lambda (t) =
+\begin{cases}
+h_{1}(t) & \mbox{if} \quad 0 < t < t_{1} \\
+h_{k}(t | t_{1}, ..., t_{k-1}) & \mbox{if} \quad t_{k - 1} < t \leq t_{k}, k \geq 2.
+\end{cases}
+\]
+This allows us to write the likelihood in terms of the conditional intensity function instead of the Janossy density. We may write
+
+\[
+S_{k}(t | t_{1}, ... , t_{k - 1}) = \exp \Bigg( - \int_{t_{k-1}}^{t} h_{k} (u | t_{1}, ..., t_{k-1}) \d u \Bigg)
+\]
+Substituting we then get
+
+\[
+L(\Theta) = \Bigg[ \prod_{i=1}^{n} \lambda(t_{i}) \Bigg] \exp \Bigg( - \int_{0}^T \lambda(t) \d t  \Bigg)
+\]
+By treating spatial locations as marks, we may extend this argument to spatio-temporal processes
+
+\[
+L(\Theta) = \Bigg[ \prod_{i=1}^{n} \lambda(s_{i}, t_{i}) \Bigg] \exp \Bigg( - \int_{0}^{T} \int_{X} \lambda(s, t) \d s \d t  \Bigg)
+\]
+Where $X$ is the spatial domain of the observations.
+
+
+
+
+
+
+
+
+
+
+\section{The Model}
+
+We are proposing a new model for the RIFA invasion based on a self-exciting point process.
+
+In this new approach we are seeking to simplify and improve on Keith and Spring agent-based model \cite{Keith} with the aim to reduce the running time without compromising on flexibility and completeness.
+
+The model of Keith and Spring focused on reconstructing the historical trajectory of the invasion to determine if the current eradication strategy was successful. Their method consisted in constructing a likelihood model in terms of some unknown parameters that included, among other things, the phylogeny, jump type, founding type and treatment success rate. They then constructed the dependencies among the known and unknown parameters and defined all conditional distributions.
+
+The posterior distribution was then sampled using a generalised Gibbs technique that enables transdimensional sampling, which is used when the number of parameters is unknown, as in their case.
+
+A key feature of our model is that it will not need to include the phylogeny of the nests in the likelihood, which will result in a much lower computational time when running the inference code.
+
+This will also allow the model to be adapted to other type of invasions where control strategies will have to be decided rapidly as new data is acquired.
+
+We have been also considering the detection processes in parallel with the founding events in a similar way as in Jewell's model for infectious diseases \cite{Jewell}.
+
+We then included unobserved nests alongside observed nests in the detection likelihood to fully model the missing data.
+
+Finally, we have considered events as happening continuously in time.
+
+Let us consider a self-exciting spatial-temporal point process $N$ as a generalization of an Hawkes model. We can then specify an intensity function $\lambda(x, y, t)$ which represents the infinitesimal expected  rate of events at time $t$ and location $(x, y)$  given all the events up to time $t$.
+
+\textcolor{red}{Here $\mathcal{F}$ is a $\sigma$-algebra on $S \times [0, \infty )$, where $S$ is a bounded region of $\mathbb{R}$ and $[0, \infty)$ is the time interval. $N: \mathcal{F} \to \mathbb{R}$ and $N(A)$ is the number of points in $A$ for $A \in \mathcal{F}$}
+
+We will consider $N$ to be an inhomogeneous Poisson process, for which $\lambda(x, y, t)$ depends only on $(x, y)$ and $t$ \cite{Shoenberg}. \textcolor{red}{The function $g(x - x', y - y', f - f')$ is the clustering density, where $f'$ are the times of founding of parents nests and the spatial coordinates $(x', y')$ will specify the location $s'$ of a parent nest.}
+
+
+We can then write the conditional intensity function for new nests considering the full past history in term of a stocastic integral:
+
+\[
+\lambda(x, y, t) = \mu(x, y, t) + \int_{0}^{t} \iint_{S} g(x - x', y - y', f - f') \d N(x', y', f')
+\]
+$\d N(x', y', f') = 1$ if the infinitesimal element $\d N(x', y', f')$ contains a parent and is 0 otherwise. We consider the temporal behavior of the process as independent of the spatial behavior so we can write
+
+\[
+\lambda(x, y, t) = \mu(x, y, t) + \int_{0}^{t} \iint_{S} m(f-f') \cdot l((x - x'), (y - y')) \d N(x', y', f')
+\]
+Where $\mu$ is a background term, while $m$ and $l$ are the triggering functions for time and space respectively. 
+
+New individuals from the invasive species can be introduced at any time by carriers like animals or humans. For simplicity, in the RIFA invasion we will assume that these exogenous introductions are not happening. Also we assume to know time and location of the first nest.  We will therefore set the background term $\mu(x, y, f) $ equal to 0.
+
+Each parent nest will be able to found more than one nest, with the number of nests founded per nest per month being a parameter $\zeta$, therefore the temporal triggering kernel will be a step function. Also the nest will have a maturation time $t_m$ of 8 months. Before this time they will not be able to produce new nests. 
+
+The step function will be:
+
+
+\[
+m (f - f') =
+\begin{cases}
+0, & \mbox{if} \quad f - f' < t_{m} \\
+\zeta, & \mbox{if} \quad f - f' \geq t_{m}
+\end{cases}
+\]
+Where $f$ is the founding time of the new nest and $f'$ is the founding time of the parent nest.
+
+For the newly founded nests we will consider a radial distance from the parent nest with an exponential distribution. The distribution over the angular direction will be uniform as it is equally possible to found a nest in every direction from the parent nest.
+
+\begin{equation}
+l(x - x', y - y')= J \bigg(\frac{1}{2 \pi} \sigma e^{- \sigma r}\bigg)
+\end{equation}
+where $J$ is the Jacobian
+
+\[
+J =  
+\begin{vmatrix}
+	\frac{\partial r}{\partial x} & \frac{\partial r}{\partial y} \\
+	\frac{\partial \theta}{\partial x} & \frac{\partial \theta}{\partial y} \\
+\end{vmatrix}
+\]
+where
+
+\[
+r^{2} = (x - x')^{2} + (y - y')^{2}
+\]
+and
+
+\[
+\theta = tan^{-1} \Bigg [\frac{y - y'}{x - x'} \Bigg ]
+\]
+therefore
+
+\[
+J = \frac{1}{\sqrt{(x - x')^{2} + (y - y')^{2}}}
+\]
+We also make the assumption that nests are killed as soon as they are detected, so we introduce an indicator function $I(t' - t)$ such that
+
+\[
+I (t' - t) =
+\begin{cases}
+1, & \mbox{if} \quad t' -  t> 0 \\
+0, & \mbox{otherwise}
+\end{cases}
+\]
+Where $t'$ represents the time of detection. So the conditional intensity function will be
+
+\[
+\lambda(x, y, t) = \int_{0}^{t} \int_{0}^{t} \iint_{S} m(f - f') \cdot I(t' - t)\cdot \frac{\sigma J }{2 \pi} e^{- \sigma r} \d N(x',y',t',f')
+\]
+where now the term $\d N(x',y',t',f')$ is 1 if a nest was founded in an infinitesimal time about $f'$ at a location in an infinitesimal region about $(x', y')$ and was detected in an infinitesimal time around $t'$ and is $0$ otherwise. Note that we must have $\d N(x',y',t',f')=0$ whenever $f' \geq t'$.
+
+The likelihood at time $T$ will then be that of  an inhomogeneous Poisson process for the founding process with intensity $\lambda(x, y, t)$.
+
+Also, the discovery time $t$ of a nest is known, but it is unknown when the nest was founded. So the time from establishment to notification $(t - f)$ of a nest $i$ is a random variable which we will consider exponentially distributed.
+
+\[
+h(t_{i} - f_{i}) = \gamma \exp (- \gamma(t_{i} - f_{i}))
+\]
+The Likelihood for a set of $n$ locations $(s_{1}, ... , s_{n})$, a set of founding times $f_{1}, ... , f_{n}$, and detection times $(t_{1},  ... , t_{n})$ will then be:
+
+\[
+\begin{aligned}
+L(s_{1}, ..., s_{n}, f_{1}, ..., f_{n}, t_{1}, ..., t_{n} | \Theta) = & \Bigg[ \prod_{j=1}^{n} \lambda(s_{j}, t_{j}) \Bigg] \times \exp \Bigg(- \int_{0}^{T} \int_{S} \lambda(s, t) \d s \d t \Bigg) \times \\ 
+& \times \prod_{\{ i : t_{i} < T \} } h (t_{i} - f_{i}) \times \prod_{ \{ i : t_{i} = \infty \} } \int_{T}^{\infty} h(t - f_{i}) \d t
+\end{aligned}
+\]
+Where $t_{i} = \infty$ if nest $i$ has not been detected at time $T$. $h(t_{i} - f_{i})$ is the contribution of the observed nests, while $\int_{T}^{\infty} h(t - f_{i}) dt$ is the contribution of the unobserved nest. $\Theta= ( \sigma, \gamma, \zeta)$ is the vector of the unknown parameters and $n$ is the number of nests founded.
+
+The term 
+
+\begin{equation}
+\exp \bigg(- \int_{0}^{T} \int_{S} \lambda(s, t)\d s \d t \bigg)
+\end{equation}
+in the likelihood will evaluate to 
+
+
+\[
+\exp \bigg(- \zeta \sum_{i=1}^{n} (min\{ T, t_i \} - f_i) \bigg)
+\]
+as the spatial part evaluates to 1 and the temporal part is constant over the lifetime of each nest.
+
+The likelihood can then be rewritten:
+
+\[
+\begin{aligned}
+L(s_{1}, ..., s_{n}, f_{1}, ..., f_{n}, t_{1}, ..., t_{n} | \Theta) = & \Bigg[ \prod_{j=1}^{n} \lambda(s_{j},f_{j}, t_{j}) \Bigg] \times \exp \bigg(-\zeta \sum_{i=1}^{n} (min\{ T, t_i \} - f_i) \bigg)  \times \\
+& \times \prod_{\{ i : t_{i} < T \} }  h (t_{i} - f_{i}) \times \prod_{ \{ i : t_{i} = \infty \} } \int_{T}^{\infty} h(t - f_{i}) \d t
+\end{aligned}
+\]
+And the log-likelihood:
+
+\[
+\begin{aligned}
+l(s_{1}, ..., s_{n}, f_{1}, ..., f_{n}, t_{1}, ..., t_{n} | \Theta) = & \Bigg[ \sum_{j=1}^{n} \log \lambda(s_{j},f_{j}, t_{j}) \Bigg] - \bigg(\zeta \sum_{i=1}^{n} (min\{ T, t_i \} - f_i) \bigg)  + \\
+& + \sum_{\{ i : t_{i} < T \} }  \log h (t_{i} - f_{i}) + \sum_{ \{ i : t_{i} = \infty \} } \log \int_{T}^{\infty} h(t - f_{i}) \d t
+\end{aligned}
+\]
+Substituting $h$ and evaluating the last integral we get 
+
+\[
+\begin{aligned}
+l = & \Bigg[ \sum_{j=1}^{n} \log \lambda(s_{j},f_{j}, t_{j}) \Bigg] - \bigg(\zeta \sum_{i=1}^{n} (min\{ T, t_i \} - f_i) \bigg)  + \sum_{\{ i : t_{i} < T \} }  \bigg[\log (\gamma) -\gamma(t_{i} - f_{i}) \bigg] \\
++ & \sum_{ \{ i : t_{i} = \infty \} } \bigg[\log \bigg(\frac{1}{\gamma}\bigg) -\gamma(T - f_{i}) \bigg]
+\end{aligned}
+\]
+In Bayesian statistics, we begin with prior distributions $P(\Theta)$ which encodes all that is known about $\Theta$ based on previous knowledge. After analyzing the data, the posterior distribution encodes all information about $\Theta$ based on both the prior and the data. In our case we want to keep the priors uninformative, therefore we choose gamma distributions with scale and shape equal to 1. The posterior distribution then is give by:
+
+\[
+P(\Theta | s_{1}, ..., s_{n}, f_{1}, ... , f_{n}, t_{1}, ..., t_{n}) \propto L(s_{1}, ..., s_{n}, f_{1}, ... , f_{n}, t_{1}, ..., t_{n} | \Theta) \times P(\Theta)
+\]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section{AR(1) model}
+
+
+Let us consider an AR(1) process for which
+
+\[
+x_{t} = c +  \varphi x_{t-1} + \eps_{t}
+\]
+with $\eps_{t} \stackrel{iid}{\sim} \mathcal{N}(0, \sigma^{2})$ and $|\varphi| < 1$, and where we consider $c = 0$
+then:
+
+\[
+(x_{t} | x_{t-1}) \sim \mathcal{N} (\varphi x_{t-1}, \sigma^{2})
+\]
+therefore
+
+\[
+f(x_{t} | x_{t-1} , x_{t-2}, \dots , x_{1}) = f(x_{t} | x_{t-1}) =  \frac{1}{\sqrt{2 \pi \sigma^{2}}} \exp \Bigg \{ { - \frac{1}{2 \sigma^{2}} }  (x_{t} - \varphi x_{t-1})^{2} \Bigg \}
+\]
+The likelihood will be
+
+\[
+L(x_{1}, \dots , x_{N} | \sigma, \varphi) = \Bigg [ \prod_{t=1}^{N} f(x_{t} | x_{t-1}) \Bigg] \cdot f(x_{1})
+\]
+where $f(x_{1})$ is the distribution of the initial value.
+
+{\color{red}To this likelihood, we will also add the terms related to the observations, which will happen at time $T_{i} \geq i$ where $i$ is the time at which the event happens. In this case we will model the discovery time with a geometric distribution with $p$ being the probability of observing a nest.  We will then have $P(T_{i} = i + t_i - 1) = p(1 - p)^{t_i - 1}$ for $t_i > 0$ being the number of trials up to and including the next success (observation). We will also have to take in consideration all the unobserved nests (missing data for the variable $t$).}
+
+The likelihood for the observations will then be
+
+\[
+L(T_{1}, \dots, T_{N} | p) = \prod_{\{i:t_{i} \leq {\color{red}N - i} \}} p (1 - p)^{t_{i} - 1} \prod_{\{i: t_{i} = \infty\}} (1 - p)^{N - i }
+\]
+Where the first term is the contribution of the observed nests and the second term is the contribution of the unobserved nests.
+
+The full likelihood will then be
+
+\[
+\begin{split}
+L(x_{1}, \dots, x_{N} , T_{1}, \dots, T_{N} | \sigma, \varphi, p) = & \Bigg \{ \prod_{t=2}^{N}  \frac{1}{\sqrt{2 \pi \sigma^{2}}} \exp \Bigg [ { - \frac{1}{2 \sigma^{2}} }  (x_{t} - \varphi x_{t-1})^{2} \Bigg ] \Bigg \} \cdot f(x_{1}) \\ 
+& \prod_{\{i:t_{i} \leq {N - i} \}} p (1 - p)^{t_{i} - 1} \prod_{\{i: t_{i} = \infty\}} (1 - p)^{N - i}
+\end{split}
+\]
+and the log likelihood will be
+
+\[
+\begin{split}
+l(x_{1}, \dots, x_{N} , T_{1}, \dots, T_{N} | \sigma, \varphi, p) = & \Bigg \{ -[(N - 1)/2]{ \cdot \log (2 \pi }) - [(N - 1)/2] \cdot{\log \sigma^{2}} \Bigg \} - \\
+& - \Bigg \{ \sum_{t=2}^{N}  \Bigg [ { - \frac{1}{2 \sigma^{2}} }  (x_{t} - \varphi x_{t-1})^{2} \Bigg ] \Bigg \} + \log f(x_{1}) + \\
+& +   \sum_{\{i:t_{i} \leq N - i \}} \log [p (1 - p)^{t_{i} - 1}] + \sum_{\{i: t_{i} = \infty\}} \log (1 - p)^{N - i }
+\end{split}
+\]
+We want the model to be stationary and to converge to an asymptotic distribution. We therefore want the marginal distribution of the initial value, $f(x_{1})$, to be that asymptotic distribution.
+
+To find the asymptotic distribution we set the variance for the marginal distribution to
+\[
+\sigma_{x}^2 = V(x_{t}) = V(x_{t-1})
+\]
+therefore, from the recursive process 
+
+\[
+\begin{split} 
+\sigma_{x}^2 & = V(x_{t}) = V(\varphi x_{t-1} + \eps_{t}) \\
+& = \varphi^2 V(x_{t-1}) + V(\eps_{t}) \\
+& = \varphi^2 \sigma_{x}^2 + \sigma^2
+\end{split}
+\]
+then solving for $\sigma_{x}^2$ we get
+
+\[
+\sigma_{x}^2 = \frac{\sigma^2}{1- \varphi^2}
+\]
+and so, in order to obtain a stationary AR(1) model with zero mean, the starting distribution will be
+
+\[
+x_{1} \sim \mathcal{N} \Bigg (0, \frac{\sigma^2}{1- \varphi^2} \Bigg )
+\]
+therefore in the log likelihood we can write:
+
+\[
+\log f(x_{1}) = - \frac{1}{2} \log(2 \pi) - \frac{1}{2} \log[\sigma^2 / (1 - \varphi^2)] - \Bigg [\frac{x_{0}^{2}}{2 \sigma^2/(1 - \varphi^2)} \Bigg ]
+\]
+Solving and substituting I get
+
+\[
+\begin{split}
+l(x_{1}, \dots, x_{N} , T_{1}, \dots, T_{N} | \sigma, \varphi, p) = & \Bigg \{ -[(N - 1)/2]{ \cdot \log (2 \pi }) - [(N - 1)/2] \cdot{\log \sigma^{2}} \Bigg \} - \\
+& - \Bigg \{ \sum_{t=2}^{N}  \Bigg [ { - \frac{1}{2 \sigma^{2}} }  (x_{t} - \varphi x_{t-1})^{2} \Bigg ] \Bigg \} - \\
+& - \frac{1}{2} \log(2 \pi) - \frac{1}{2} \log[\sigma^2 / (1 - \varphi^2)] - \Bigg [\frac{x_{1}^{2}}{2 \sigma^2/(1 - \varphi^2)} \Bigg ] \\
+& +   \sum_{\{i:t_{i} \leq N - i \}} \log [p (1 - p)^{t_{i} - 1}] + \sum_{\{i: t_{i} = \infty\}} \log (1 - p)^{N - i}
+\end{split}
+\]
+
+
+
+
+%Still need citation 
+
+\section{Sequential Importance Sampling with corrections}
+
+Importance sampling (IS) is a collection of Monte Carlo methods where a mathematical expectation with respect to a target distribution is approximated by a weighted average of random draws from another distribution \cite{Tokdar}.
+Let us consider two probability measures $\mathbb{P}$ and $\mathbb{Q}$ having densities $p$ and $q$ with respect to a Borel measure $\lambda$ in a measure space $(\Omega, \mathcal{F} ,\lambda)$. Let $f : \Omega \to \mathbb{R}$ be a function for which we want to estimate the expectation under $\mathbb{P}$.
+
+\[
+E_{\mathbb{P}} [ f(x) ] = \int_{\Omega} f(x)p(x)\d \lambda (x)
+\]
+The idea is to draw an iid sample $x_1, \dots, x_n$ distributed according to a probability measure $\mathbb{Q}$ so that the integral can now be written as
+
+\[
+E_{\mathbb{P}} [ f(x) ] = \int_{\esssup(q)} f(x) \frac{p(x)}{q(x)} q(x) \d \lambda (x)
+\]
+and this can be approximate as
+
+\[
+E_{\mathbb{P}} [ f(x) ] \approx \sum_{i = 1}^{n} f(x_i) w_i
+\]
+Where 
+
+\[
+w_i = \frac{p(x_i)}{q(x_i)} \Bigg ( \sum_{i = 1}^{n} \frac{p(x_i)}{q(x_i)}\Bigg)^{-1}
+\]
+Importance sampling forms the basis of the Sequential Monte Carlo methods used in particle filtering, which are techniques used for solving state space models.
+They work online to approximate the marginal distribution of a latent process as observations become available. Importance sampling is used at each time point to approximate the distribution with a set of discrete values, known as particles, each with a corresponding weight \cite{Turner}.
+
+A state space model contains two sequences of random variables:
+
+\begin{enumerate}
+	\item A latent (hidden) state, $X_t$, which form a Markov chain, so $p(x_t | x_{0 : t - 1}) = p(x_t | x_{t - 1})$, where $x_{0 : t - 1} = \{ x_0, \dots, x_{t -1}\}$.
+	\item A series of observations, $Y_t$, which depends only on $X_t$.
+\end{enumerate}
+
+Consider the joint distribution of $x_{0 | T}$ and $y_{0 | T}$, given by:
+
+\[
+p(x_{0 : T}, y_{0 : T}) = p(y_{0 : T} | x_{0 : T}) p(x_{0 : T}) = p(x_0) \prod_{t = 0}^T p(y_t | x_{t}) \prod_{t = 1}^T p(x_t | x_{t - 1}).
+\]
+
+The problem of interest is how to incorporate all observed information to give an estimate of the latent process. In smoothing problems, where we want to estimate the past states using all available data, this is the joint distribution of all the latent variables up to time $t$ given all observations up to this time point, which can be written in a recursive form as:
+
+
+\[
+p(x_{0 : t} | y_{0 : t}) = p(x_{0 : t - 1} | y_{0 : t - 1}) \frac{ p(x_{t} | x_{t - 1}) p(y_{t} | x_{t})}{p(y_{t} | y_{0 : t - 1})}
+\]
+In Filtering problems, where we want to sequentially predict the future state $x_t$ given all the previous data, it is the marginal distribution:
+
+\[
+p(x_{t} | y_{0 : t}) = \frac{ p(x_{t} | y_{0 : t - 1}) p(y_{t} | x_{t})}{p(y_{t} | y_{0 : t - 1})} = p(y_{t} | x_{t}) \int p(x_{t - 1} | y_{0 : t - 1}) \frac{p(x_t | x_{t - 1})}{p(y_t | y_{0 : t - 1})} \d x_{t - 1}
+\]
+Where the normalising constant $p(y_{t} | y_{0 : t - 1})$ is
+
+\[
+p(y_{t} | y_{0 : t - 1}) = \int p(y_{t} | x_{t}) \Bigg \{ \int p(x_{t - 1} | y_{0 : t - 1})) p(x_t | x_{t - 1}) \d x_{t - 1}\Bigg\} \d x_t.
+\]
+We could as well estimate the unknown parameters of the system knowing the data.
+
+The normalising constant often inhibit the direct calculation of the integral. In linear cases the problem can be solved using a Kalman filter.
+
+
+\section{The pseudocode}
+
+Sequential Importance Sampling allows to sequentially update the posterior distribution at time $t$ without having to re-run the previously simulated states \cite{Turner}.
+
+In our Sequential Importance Sampling strategy we want to generate samples in accordance with the prior density, then we want to correct this samples in light of the observations to obtain new samples. 
+
+$x$ real values of the events, 
+
+$z$ observations, 
+
+$y$ samples, 
+
+$p$ posterior distribution.
+
+$q$ importance function that updates recursively in time when the next observation becomes available. This function for the AR1 model is the posterior of the previous iteration. So from the chain rule of probability we can write $\frac{f(x_n, \dots, x_1)}{f(x_{n-1}, \dots, x_1)} = q(x_n, t_n | x_{n-1}, \dots, x_1)$
+
+
+%I can ignore $u$ and $r$ as I am going to normalise the weights
+
+
+\begin{algorithm}[H]
+\caption{Sequential Importance Sampling with corrections}\label{euclid}
+ \begin{algorithmic}
+
+ \State  \bf{Initialize:} \normalfont At time i = 1
+            
+\begin{enumerate}
+	\item For $j = 1, \dots , n$
+	\begin{enumerate}
+		\item Sample $x_{1}^{(j)} \sim p(x_{1}) = f(x_{1})$ and set the first observation to be 0
+		\item Evaluate the importance weights up to a normalising constant:
+		\[
+		\tilde{w}^{(j)}_{1} = p(y_{1} | x_{1}^{(j)}) = 1
+		\]
+	\end{enumerate}
+	\item For $j = 1, \dots , n$ normalise the importance weights: 
+	\[
+	w^{(j)}_{1} = \frac{\tilde{w}^{(j)}_{1}}{\sum_{k=1}^{n}\tilde{w}^{(k)}_{1}} = \frac{1}{n}
+	\]
+\end{enumerate}
+
+ \State  \bf{Iterate:} \normalfont For $i$ from 2 to $N$
+
+\begin{enumerate}
+	\item For $j = 1, \dots , n$
+	\begin{enumerate}
+  		\item sample $x_{i}^{(j)} \sim q(x_{i} | x_{1:i - 1}^{(j)} , z_{1 : i})$ and sample $t_i^{(j)}$ from a geometric distribution.
+		\item {\color{red} If there was an observation, correct every $x_{i}^{(j)}$ in light of the data $z_{i}$ to obtain new samples $y_{i}^{(j)}$ directly substituting the new data: $y_i^{(i)} = z_{i}$, if not keep the sample.}
+		\item Evaluate the importance weights up to a normalising constant:
+		\color{red}
+		\[
+		\tilde{w}^{(j)}_{t} = \tilde{w}^{(j)}_{i - 1} \frac{q(x_{i}^{(j)})}{q(y_{i}^{(j)})}
+		\]
+	\end{enumerate}
+	\item For $j = 1, \dots , n$ normalise the importance weights:
+	\[
+	w^{(j)}_{i} = \frac{\tilde{w}^{(j)}_{i}}{\sum_{k=1}^{n}\tilde{w}^{(k)}_{i}}
+	\]
+	
+
+\end{enumerate}
+
+\State  \bf{Output:} \normalfont $\Big \{ x_{i}^{(j)} , w_{i}^{(j)} \Big \}_{j = 1}^{n}$ for $i \in \{ 1, N \}$
+
+\item Calculate the expectation  $E[x_i] = \sum_{k=1}^{n} x^{(k)}_i w_{i}^{(k)}$
+	
+
+        
+
+  
+ \end{algorithmic}
+\end{algorithm}
+
+
+
+\begin{thebibliography}{99}
+
+\bibitem{Mack} Mack RN, et al. (2000) Biotic invasions: Causes, epidemiology, global consequences, and control. \textit{Ecol Appl} 10(3): 689-710.
+
+%\bibitem{Simberloff} Simberloff D (2009) We can eliminate invasions or live with them: Successful management projects. \textit{Biol. Invasions} 11(1):149-157.
+
+\bibitem{Broennimann} Broennimann O, GuisanA, (2008) Predicting current and future biological invasions: both native and invaded ranges matter. \textit{Biology Letters} 4:585-589
+
+\bibitem{Hastings} Hastings A, et al. (2005) The spatial spread of invasions: new developments in theory and evidence. \textit{Ecology Letters} 8: 91–101.
+
+\bibitem{Veloz} Veloz SD (2009) Spatially autocorrelated sampling falsely inflates measures of accuracy for presence‐only niche models. \textit{Jour of Biogeography} 36(12): 2290-2299
+
+\bibitem{Hooten} Hooten MB, Wikle CK (2008) A hierarchical Bayesian non-linear spatio-temporal model for the spread of invasive species with application to the Eurasian Collared-Dove. \textit{Environ Ecol Stat} 15(1): 59-70
+
+%\bibitem{Schmidt} Schmidt D, et al. (2010) Finding needles (or ants) in haystacks: predicting locations of invasive organisms to inform eradication and containment \textit{Ecol Appl} 20(5):1217-1227
+
+\bibitem{Keith} Keith JM, Spring D (2013) Agent-based Bayesian approach to monitoring the progress of invasive species eradication programs. \textit{Proc Natl Acad Sci} 110(33): 13428-13433
+
+%\bibitem{Suarez} Suarez AV, Holway DA, Case TJ (2001) Patterns of spread in biological invasions dominated by long-distance jump dispersal: Insights from Argentine ants. \textit{Proc Nati Acad Sci USA} 98(3):1095-1100 
+
+\bibitem{Reinhart} Reinhart A (2017) A review of self-exciting spatio-temporal point processes and their applications. \textit{ArXiv e-prints} 1708.02647v2
+
+\bibitem{Fotheringham} Fotheringham AS, Wong DWS (991). The modifiable areal unit problem in multivariate statistical analysis. \textit{Environment and Planning A} 23: 1025-1044
+
+\bibitem{Shoenberg} Shoenberg FP, Brillinger R, Guttorp P (2014). Point Processes, Spatial‐Temporal. \textit{Encyclopedia of Environmetrics}
+
+\bibitem{Ducet} Doucet A, de Freitas N, Gordon N (2001) An Introduction to Sequential Monte Carlo Methods. In: Doucet A., de Freitas N., Gordon N. (eds) Sequential Monte Carlo Methods in Practice. Statistics for Engineering and Information Science. Springer, New York, NY
+
+\bibitem{Jewell} Jewell CP, et al. (2009) Bayesian analysis for emerging infectious diseases. \textit{Bayesian Anal.} 4(3): 465-496
+
+\bibitem{Rasmussen} Rasmussen JG (2013). Bayesian Inference for Hawkes Processes. \textit{Methodol Comput Appl Probab} 15: 623–642
+
+%\bibitem{MacKenzie} MacKenzie DI, et al. (2002)  Estimating site occupancy rates when detection probabilities are less than one \textit{Ecol} 83(8):2248-2255
+
+\bibitem{Turner} Turner L (2013), “An Introduction to Particle Filtering,” Technical Report, Lancaster University.
+
+%\bibitem{Pollock} Pollock M (2010), “Introduction to Particle Filtering: Discussion” Techni- cal Report, University of Warwick. 
+
+\bibitem{Tokdar} Tokdar ST, Kass RE (2010), Importance sampling: a review. \textit{Wiley Interd Rev: Computational Statistics} 2(1): 54-60
+
+\bibitem{Turner} Turner, LA, Sherlock, CH (2013). An Introduction to Particle Filtering.
+
+
+\end{thebibliography}
+
+
+\end{document}
