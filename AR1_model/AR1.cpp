@@ -15,9 +15,13 @@ the values of the parameters at this stage are fixed and are sigma^2 = 1, phi = 
 int sigmasq = 1;
 float phi = 0.5;
 float p = 0.4;
+int N = 10;
+double X[10];
 
 
 /* find one sample from a normal distribution with mean 0 and var = sigma^2 / (1 - phi^2) to find x_1 */
+/* with a for loop for i = 2 ... N, sample from a normal distribution with mean phi * x_(i - 1) and variance sigma^2 = 1 and find all the other x_i 
+   put all this values in a vector X */
 
 int main()
 {
@@ -25,14 +29,21 @@ int main()
   std::normal_distribution<double> normalDist(0,sigmasq / (1 - phi * phi));
   std::mt19937 generator(time(NULL));
 
-  double x_1 = normalDist(generator);
-  printf("x_1 is %f", x_1);
+  X[1] = normalDist(generator);
+  
+  for (int i = 2; i < N + 1; ++i){
+  std::normal_distribution<double> normalDist(phi * X[i - 1], sigmasq);
+    std::mt19937 generator(time(NULL));
+    X[i] = normalDist(generator);
+  }
+
+printf("x_1 is %f", X[1]);
+printf("x_3 is %f", X[3]);
+printf("x_10 is %f", X[10]);
 
   return 0;
 }
 
-/* with a for loop for i = 2 ... N, sample from a normal distribution with mean phi * x_(i - 1) and variance sigma^2 = 1 and find all the other x_i 
-   put all this values in a vector X */
 /* create N empty vectors R_(k_i) for k_i = 1, ..., N */
 /* for loop for i = 1, ..., N sample from a geometric distribution with p = 0.4 and find the values t_i. */
 /* If t_i > N - i do nothing. */
