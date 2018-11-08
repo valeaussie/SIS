@@ -2,7 +2,7 @@
 I am going to generate a vector X with the x_i as elements which are found sampling from the AR1 model I have specified. This will be the vector of the events.
 Then I am going to generate N, R_(k_i) vectors of the times of the events that happened at time i and have been observed at time k_i.
 Finally, I will generate N, Z_(k_i) vectors of observations of events that happened at time i and have been observed at time k_i.
-the values of the parameters at this stage are fixed and are sigma^2 = 1, phi = 0.5, p = 0.4, I also choose the value of N = 10
+the values of the parameters at this stage are fixed and are sigma^2 = 1, phi^2 = 0.5, p = 0.4, I also choose the value of N = 10
 */
 
 
