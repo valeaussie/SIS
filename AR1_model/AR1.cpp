@@ -31,7 +31,7 @@ int main()
   return 0;
 }
 
-/* with a for loop for i = 2 ... N, sample from a normal distribution with mean phi * x_(t - 1) = 0.5 * x_(t - 1) and variance sigma^2 = 1 and find all the other x_i 
+/* with a for loop for i = 2 ... N, sample from a normal distribution with mean phi * x_(i - 1) = 0.5 * x_(i - 1) and variance sigma^2 = 1 and find all the other x_i 
    put all this values in a vector X */
 /* create N empty vectors R_(k_i) for k_i = 1, ..., N */
 /* for loop for i = 1, ..., N sample from a geometric distribution with p = 0.4 and find the values t_i. */
