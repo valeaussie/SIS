@@ -1,8 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <random>
+using std::mt19937; using std::normal_distribution; using std::geometric_distribution;
 #include <iostream>
-#include <string>
+using std::cout; using std::endl; using std::random_device;
+#include <vector>
+using std::vector;
+#include <fstream>
 
 /* this is the code to sample from my model and find the vector of the observations
 I am going to generate a vector X with the x_i as elements which are found sampling from the AR1 model I have specified. This will be the vector of the events.
@@ -15,35 +17,45 @@ the values of the parameters at this stage are fixed and are sigma^2 = 1, phi = 
 int sigmasq = 1;
 float phi = 0.5;
 float p = 0.4;
-int N = 10;
-double X[10];
+int N = 100;
+vector<double> X;
 
 
-/* find one sample from a normal distribution with mean 0 and var = sigma^2 / (1 - phi^2) to find x_1 */
+/* Find one sample from a normal distribution with mean 0 and var = sigma^2 / (1 - phi^2) to find x_1 */
 /* with a for loop for i = 2 ... N, sample from a normal distribution with mean phi * x_(i - 1) and variance sigma^2 = 1 and find all the other x_i 
    put all this values in a vector X */
 
+random_device rd;
+
 int main()
 {
-
-  std::normal_distribution<double> normalDist(0,sigmasq / (1 - phi * phi));
-  std::mt19937 generator(time(NULL));
-
-  X[1] = normalDist(generator);
+  mt19937 generator(rd());
+  normal_distribution<double> normalDist(0,sigmasq / (1 - phi * phi));
   
-  for (int i = 2; i < N + 1; ++i){
-  std::normal_distribution<double> normalDist(phi * X[i - 1], sigmasq);
-    std::mt19937 generator(time(NULL));
-    X[i] = normalDist(generator);
+  X.push_back(normalDist(generator));
+  
+  for (int i = 2; i < N + 1; i++){
+    mt19937 generator(rd());
+    normal_distribution<double> normalDist(phi * X[i - 1], sigmasq);
+    X.push_back(normalDist(generator));
   }
 
-printf("x_1 is %f", X[1]);
-printf("x_3 is %f", X[3]);
-printf("x_10 is %f", X[10]);
+std::ofstream outFile("./vector_X.dat");
+for (double n : X){
+outFile << n << endl;
+}
+ outFile.close();
+ 
+  /* for (int i = 1; i < N + 1; ++i){
+     mt19937 generator(rd());
+     geometric_distribution<double> geoDist(p);
+     int R[NULL] 
+
+
+   } */
 
   return 0;
 }
-
 /* create N empty vectors R_(k_i) for k_i = 1, ..., N */
 /* for loop for i = 1, ..., N sample from a geometric distribution with p = 0.4 and find the values t_i. */
 /* If t_i > N - i do nothing. */
@@ -54,28 +66,25 @@ printf("x_10 is %f", X[10]);
 /* calculate the expectation of the x_i */
 
 
-
 /* this is the code for the method
    i here is the index for the current time that goes from 1 to N, j is the index for the particles that goes from 1 to n. I choose n to be 1000 */
 
 
 
-/* create j vectors S_j of N 0s. These are the vectors that will list if it has been (1) or not (0) an observations at time i for the particle j*/
+/* create j vectors S_j of N 0s. These are the vectors that will list if it has been (1) or not (0) an observations at time i for the particle j */
 /* create j empty vectors Y_j for the sampled events */
 /* create j empty vectors w_j for the unnormalised weights */
 /* create j empty vectors W_j for the normalised weights */
 
 
-/* for i = 1
-   /* for j = 1, ..., n */
-      /* sample j values for y_(1_j) and put each value as first element of the corresponding vector Y_j. 
-         We define the fist observations to be 0 for every j (we don't need to change anything in the vecotrs S_j) */
+/* for i = 1 */
+/* for j = 1, ..., n */
+/* sample j values for y_(1_j) and put each value as first element of the corresponding vector Y_j. We define the fist observations to be 0 for every j (we don't need to change anything in the vecotrs S_j) */
       /* set j unnormalised importance weights w_(1_j) = 1, and save this as first elements of all w_j */
       /* set j normalised importance weight W_(1_j) = 1/N, and save this as first elements of all W_j */
 /* for i = 2, ..., N */
    /* for j = 1, ..., n */
-      /* sample from a normal distribution with mean = phi * y_(i - 1) and var = sigma^2 and find the values for y_(i_j), 
-         put these as ith elements of the vectors Y_j */
+      /* sample from a normal distribution with mean = phi * y_(i - 1) and var = sigma^2 and find the values for y_(i_j), put these as ith elements of the vectors Y_j */
       /* sample from a geometric distribution with p = 0.4 and find t_(i_j) for particle j, which is the time of the next observation of the event that happened at time i */
          /* if t_(i_j) > N - i multiply y_i by (1 - p)^(N - i) and find the new y_i in the vectors Y_j then do nothing else*/
          /* else multiply y_i by p(1 - p)^(t_i - 1) and find the new y_i then in the vector S_(i_j) in position k_i = i + t_i, substitute the existing value with a 1 */
