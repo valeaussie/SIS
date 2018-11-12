@@ -10,14 +10,14 @@ using std::vector;
 I am going to generate a vector X with the x_i as elements which are found sampling from the AR1 model I have specified. This will be the vector of the events.
 Then I am going to generate N, R_(k_i) vectors of the times of the events that happened at time i and have been observed at time k_i.
 Finally, I will generate N, Z_(k_i) vectors of observations of events that happened at time i and have been observed at time k_i.
-the values of the parameters at this stage are fixed and are sigma^2 = 1, phi = 0.5, p = 0.4, I also choose the value of N = 10
+the values of the parameters at this stage are fixed and are sigma^2 = 1, phi = 0.5, p = 0.4, I also choose the value of N = 1000
 */
 
 
 int sigmasq = 1;
 float phi = 0.5;
 float p = 0.4;
-int N = 100;
+int N = 10;
 vector<double> X;
 
 
@@ -30,31 +30,64 @@ random_device rd;
 int main()
 {
   mt19937 generator(rd());
-  normal_distribution<double> normalDist(0,sigmasq / (1 - phi * phi));
+  normal_distribution<double> normalDist( 0,sigmasq / ( 1 - phi * phi ) );
   
-  X.push_back(normalDist(generator));
+  X.push_back( normalDist ( generator ) );
   
-  for (int i = 2; i < N + 1; i++){
-    mt19937 generator(rd());
-    normal_distribution<double> normalDist(phi * X[i - 1], sigmasq);
-    X.push_back(normalDist(generator));
+  for ( int i = 2; i < N + 1; i++ ){
+    normal_distribution<double> normalDist( phi * X[i - 1], sigmasq );
+    X.push_back( normalDist ( generator ) );
   }
 
-std::ofstream outFile("./vector_X.dat");
-for (double n : X){
-outFile << n << endl;
-}
+std::ofstream outFile( "./vector_X.dat" );
+ outFile << "# values of X" << endl;
+ for ( double n : X ){
+ outFile << n << endl;
+ }
  outFile.close();
+
+ vector<int> vector_Ki;
+ vector<int> vector_i;
+ vector<vector<int> > r;
+ for ( int i = 1; i < N + 1; i++ ){
+   geometric_distribution<> geoDist(p);
+   int ti = geoDist(generator);
+   if ( ti > N - i ){}
+   else {
+     int ki = i + ti;
+     vector_i.push_back(i);
+     /* cout << "i " << vector_i.back() << endl; */
+     vector_Ki.push_back(ki);
+     /*  cout << "Ki " << vector_Ki.back() << endl; */
+     vector<int> Rki;
+     Rki.push_back(ki);
+     Rki.push_back(i);
+     r.push_back(Rki);
+   }
+ }
+   
+ for ( unsigned i = 0; i < r.size(); i++){
+   for ( unsigned j = i + 1 ; j < r.size(); j++){
+     if (r[j][0] == r[i][0]){
+       r[i].push_back(r[j][1]);
+       r[j][0] = 0;
+       r[j][1] = 0;
+     }
+   }
+ }
+ vector<vector<int> > R;
+ for (unsigned i = 0; i < r.size(); i++){
+   if ( r[i][0] != 0 ){
+     R.push_back(r[i]);
+     }
+ }
+
+ for ( const vector<int> &v : R ){
+   for  ( int x : v ) cout << x << ' ';
+   cout << endl;
+ }
  
-  /* for (int i = 1; i < N + 1; ++i){
-     mt19937 generator(rd());
-     geometric_distribution<double> geoDist(p);
-     int R[NULL] 
-
-
-   } */
-
-  return 0;
+ return 0;
 }
 /* create N empty vectors R_(k_i) for k_i = 1, ..., N */
 /* for loop for i = 1, ..., N sample from a geometric distribution with p = 0.4 and find the values t_i. */
