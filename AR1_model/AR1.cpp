@@ -14,10 +14,10 @@ the values of the parameters at this stage are fixed and are sigma^2 = 1, phi = 
 */
 
 
-int sigmasq = 1;
-float phi = 0.5;
-float p = 0.4;
-int N = 10;
+const int sigmasq = 1;
+const float phi = 0.5;
+const float p = 0.4;
+const int N = 10;
 vector<double> X;
 
 
