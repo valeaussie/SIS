@@ -1,10 +1,9 @@
 #include <random>
-using std::mt19937; using std::normal_distribution; using std::geometric_distribution;
 #include <iostream>
-using std::cout; using std::endl; using std::random_device;
 #include <vector>
-using std::vector;
 #include <fstream>
+
+using namespace std;
 
 /* this is the code to sample from my model and find the vector of the observations
 I am going to generate a vector X with the x_i as elements which are found sampling from the AR1 model I have specified. This will be the vector of the events.
