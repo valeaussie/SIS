@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <map>
 
 using namespace std;
 
@@ -17,74 +18,105 @@ const int sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.4;
 const int N = 10;
-vector<double> X;
+vector< double > X;
 
 
 random_device rd;
 
-int main()
-{
-  mt19937 generator(rd());
-  normal_distribution<double> normalDist( 0,sigmasq / ( 1 - phi * phi ) );
-  
+int main(){
+
+  // Sample from a normal distribution. Put the values in a vecotr X.
+    
+  mt19937 generator( rd () );
+  normal_distribution < double > normalDist( 0,sigmasq / ( 1 - phi * phi ) );
+
   X.push_back( normalDist ( generator ) );
   
   for ( int i = 2; i < N + 1; i++ ){
-    normal_distribution<double> normalDist( phi * X[i - 1], sigmasq );
+    normal_distribution < double > normalDist( phi * X[i - 1], sigmasq );
     X.push_back( normalDist ( generator ) );
   }
-
-std::ofstream outFile( "./vector_X.dat" );
- outFile << "values of X" << endl;
- for ( double n : X ){
- outFile << n << endl;
- }
- outFile.close();
+  
+  // Create a dat file with the values of X, this is useful to graph with gnuplot
+  
+  std::ofstream outFile( "./vector_X.dat" );
+  outFile << "values of X" << endl;
+  for ( double n : X ){
+    outFile << n << endl;
+  }
+  outFile.close();
    
-   //this is probably better done defining a structure?
+  // this is probably better done defining a structure?
 
- vector<int> vector_Ki;
- vector<int> vector_i;
- vector<vector<int> > r;
- for ( int i = 1; i < N + 1; i++ ){
-   geometric_distribution<> geoDist(p);
-   int ti = geoDist(generator);
-   if ( ti > N - i ){}
-   else {
-     int ki = i + ti;
-     vector_i.push_back(i);
-     /* cout << "i " << vector_i.back() << endl; */
-     vector_Ki.push_back(ki);
-     /*  cout << "Ki " << vector_Ki.back() << endl; */
-     vector<int> Rki;
-     Rki.push_back(ki);
-     Rki.push_back(i);
-     r.push_back(Rki);
-   }
- }
-   
- for ( unsigned i = 0; i < r.size(); i++){
-   for ( unsigned j = i + 1 ; j < r.size(); j++){
-     if (r[j][0] == r[i][0]){
-       r[i].push_back(r[j][1]);
-       r[j][0] = 0;
-       r[j][1] = 0;
-     }
-   }
- }
- vector<vector<int> > R;
- for (unsigned i = 0; i < r.size(); i++){
-   if ( r[i][0] != 0 ){
-     R.push_back(r[i]);
-     }
- }
+  vector< unsigned > vector_Ki;
+  vector< unsigned > vector_i;
+  vector< vector < unsigned > > r;
 
- for ( const vector<int> &v : R ){
-   for  ( int x : v ) cout << x << ' ';
-   cout << endl;
- }
+  // Sample from a geometric distribution the values ti
+  
+  for ( unsigned i = 1; i < N + 1; i++ ){
+    geometric_distribution <> geoDist(p);
+    unsigned ti = geoDist ( generator );
+
+    // Find Ki as ti + i. Create the RKi vectors and put Ki as first value then i. Store all this vectors in a vector of vectors (matrix) r
+    
+    if ( ti > N - i ){}
+    else {
+      unsigned ki = i + ti;
+      vector_i.push_back(i);
+      /* cout << "i " << vector_i.back() << endl; */
+      vector_Ki.push_back(ki);
+      /*  cout << "Ki " << vector_Ki.back() << endl; */
+      vector < unsigned > Rki;
+      Rki.push_back(ki);
+      Rki.push_back(i);
+      r.push_back(Rki);
+    }
+  }
+  
+  // If two lines of the matrix r have the same ki (first element) add the second element of the second vector to the first vector and set the second vector to be all made of 0
+  
+  for ( unsigned i = 0; i < r.size(); i++ ){
+    for ( unsigned j = i + 1 ; j < r.size(); j++ ){
+      if ( r[j][0] == r[i][0] ){
+	r[i].push_back( r[j][1] );
+	r[j][0] = 0;
+	r[j][1] = 0;
+      }
+    }
+  }
+
+  // Delete all zeroes from r and call it R
+  
+  vector < vector < unsigned > > R;
+  for ( unsigned i = 0; i < r.size(); i++ ){
+    if ( r[i][0] != 0 ){
+      R.push_back( r[i] );
+    }
+  }
+
+  vector < double > Z;
+  for ( unsigned i = 0; i < R.size(); i++){
+    for ( unsigned j = 1; j < R.size(); j++){
+      if ( R[i][0] == j ){
+	Z.push_back( X[j] );
+      }
+    }
+  }
+
+  // Print out the matrix R
+
+  for ( const vector < unsigned > & v : R ){
+    for  ( int x : v ) cout << x << ' ';
+    cout << endl;
+  }
+
+  for (unsigned i = 0; i < R.size(); i++ ){
+    cout << Z[i] << ' ';
+  }
+  
  
- return 0;
+  return 0;
 }
 
 /* create N empty vectors Z_(k_i) for (k_i) = 1, ..., N */
