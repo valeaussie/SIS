@@ -18,8 +18,11 @@ the values of the parameters at this stage are fixed and are sigma^2 = 1, phi = 
 const int sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.4;
-const int N = 10;
+const unsigned N = 10;
 vector< double > X;
+
+void print_matrix_unsigned( vector < vector < unsigned > > m );
+void print_matrix_double( vector < vector < double > > M );
 
 
 random_device rd;
@@ -33,7 +36,7 @@ int main(){
 
   X.push_back( normalDist ( generator ) );
   
-  for ( int i = 2; i < N + 1; i++ ){
+  for ( unsigned i = 2; i < N + 1; i++ ){
     normal_distribution < double > normalDist( phi * X[i - 1], sigmasq );
     X.push_back( normalDist ( generator ) );
   }
@@ -121,59 +124,53 @@ int main(){
   vector < double > temp_vect_double{};
   for ( unsigned i = 0; i < z.size(); i++ ){
     for ( unsigned j = 1; j < z[i].size(); j++ ){
-      //int temp_var = z[i][j];
-      //cout << temp_var << endl;
-      temp_vect_double.push_back(X[(z[i][j] - 1)]);
+      temp_vect_double.push_back( X[ ( z[i][j] - 1 ) ] );
     }
     Z.push_back( temp_vect_double );
     temp_vect_double.clear();
   }
-  
+  for ( unsigned i = 0; i < z.size(); i++ ){
+    Z[i].insert( Z[i].begin(), z[i][0] );
+  }
   
   // Print out the matrix R
 
   cout << "Matrix R" << endl;
-  
-  for ( const vector < unsigned > & v : R ){
-    for  ( int x : v ) cout << x << ' ';
-    cout << endl;
-  }
+  print_matrix_unsigned(R);
   
   // Print out the matrix z
 
   cout << "Matrix z" << endl;
-
-
-  for ( const vector < unsigned > & v : z ){
-    for  ( int x : v ) cout << x << ' ';
-    cout << endl;
-  }
+  print_matrix_unsigned(z);
 
   // Print out the vector Z
 
   cout << "Matrix Z" << endl;
+  print_matrix_double(Z);
 
-  for ( const vector < double > & v : Z ){
-    for  ( double x : v ) cout << x << ' ';
-    cout << endl;
-  }
  
-  return 0;
-}
-
-/* calculate the expectation of the x_i */
-
-
 /* this is the code for the method
    i here is the index for the current time that goes from 1 to N, j is the index for the particles that goes from 1 to n. I choose n to be 1000 */
-
-
 
 /* create j vectors S_j of N 0s. These are the vectors that will list if it has been (1) or not (0) an observations at time i for the particle j */
 /* create j empty vectors Y_j for the sampled events */
 /* create j empty vectors w_j for the unnormalised weights */
 /* create j empty vectors W_j for the normalised weights */
 
+  vector < vector < unsigned > > S;
+  unsigned n = 5;
+  
+  for ( unsigned i = 0; i < N; i++ ){
+    vector < unsigned > s{};
+    for ( unsigned j = 0; j < n; j++ ){
+      s.push_back(0);
+    }
+    S.push_back(s);
+  }
+
+  cout << "Matrix S" << endl;
+  print_matrix_unsigned(S);
+ 
 
 /* for i = 1 */
 /* for j = 1, ..., n */
@@ -201,3 +198,21 @@ int main(){
    /* normalise the importance weights W_(i_j) = w_(i_j) / sum for j from 2 to N of w_(t_j)*/
 
 /* calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j) */
+  return 0;
+}
+
+void print_matrix_unsigned( vector < vector < unsigned > > m ){
+  for ( const vector < unsigned > & v : m ){
+    for  ( unsigned x : v ) cout << x << ' ';
+    cout << endl;
+  }
+}
+
+void print_matrix_double( vector < vector < double > > M ){
+  for ( const vector < double > & v : M ){
+    for  ( double x : v ) cout << x << ' ';
+    cout << endl;
+  }
+}
+
+
