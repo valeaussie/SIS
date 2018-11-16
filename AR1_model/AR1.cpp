@@ -3,6 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <map>
+#include <algorithm>
 
 using namespace std;
 
@@ -48,9 +49,9 @@ int main(){
    
   // this is probably better done defining a structure?
 
-  vector< unsigned > vector_Ki;
-  vector< unsigned > vector_i;
-  vector< vector < unsigned > > r;
+  vector< unsigned > vector_Ki{};
+  vector< unsigned > vector_i{};
+  vector< vector < unsigned > > r{};
 
   // Sample from a geometric distribution the values ti
   
@@ -88,32 +89,51 @@ int main(){
 
   // Delete all zeroes from r and call it R
   
-  vector < vector < unsigned > > R;
+  vector < vector < unsigned > > R{};
   for ( unsigned i = 0; i < r.size(); i++ ){
     if ( r[i][0] != 0 ){
       R.push_back( r[i] );
     }
   }
 
-  vector < double > Z;
-  for ( unsigned i = 0; i < R.size(); i++){
-    for ( unsigned j = 1; j < R.size(); j++){
-      if ( R[i][0] == j ){
-	Z.push_back( X[j] );
-      }
+  // Sort the matrix R by the first column
+
+  sort( R.begin(), R.end() );
+
+  vector < vector < unsigned > > z{};
+  vector < unsigned > a{};
+  for ( unsigned i = 0; i < R.size(); i++ ){
+    for ( unsigned j = 1; j < R[i].size(); j++ ){
+      a.push_back(R[i][j]);   
     }
+    z.push_back(a);
+  }
+  for ( unsigned i = 0; i < R.size(); i++ ){
+    z[i].insert(z[i].begin(), R[i][0]);
   }
 
   // Print out the matrix R
 
+  cout << "Matrix R" << endl;
+  
   for ( const vector < unsigned > & v : R ){
     for  ( int x : v ) cout << x << ' ';
     cout << endl;
   }
+  
+  // Print out the matrix z
 
-  for (unsigned i = 0; i < R.size(); i++ ){
-    cout << Z[i] << ' ';
+  cout << "Matrix z" << endl;
+
+
+  for ( const vector < unsigned > & v : z ){
+    for  ( int x : v ) cout << x << ' ';
+    cout << endl;
   }
+
+  // for (unsigned i = 0; i < R.size(); i++ ){
+  // cout << Z[i] << ' ';
+  // }
   
  
   return 0;
