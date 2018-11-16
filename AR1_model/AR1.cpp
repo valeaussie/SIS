@@ -32,7 +32,7 @@ int main(){
   // Sample from a normal distribution. Put the values in a vecotr X.
     
   mt19937 generator( rd () );
-  normal_distribution < double > normalDist( 0,sigmasq / ( 1 - phi * phi ) );
+  normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
 
   X.push_back( normalDist ( generator ) );
   
@@ -134,31 +134,32 @@ int main(){
   }
   
   // Print out the matrix R
-
   cout << "Matrix R" << endl;
   print_matrix_unsigned(R);
   
   // Print out the matrix z
-
   cout << "Matrix z" << endl;
   print_matrix_unsigned(z);
 
   // Print out the vector Z
-
   cout << "Matrix Z" << endl;
   print_matrix_double(Z);
 
  
-/* this is the code for the method
-   i here is the index for the current time that goes from 1 to N, j is the index for the particles that goes from 1 to n. I choose n to be 1000 */
+  /* this is the code for the method
+   i here is the index for the current time that goes from 1 to N, 
+   j is the index for the particles that goes from 1 to n. I choose n to be 10 */
 
-/* create j vectors S_j of N 0s. These are the vectors that will list if it has been (1) or not (0) an observations at time i for the particle j */
+// create j vectors S_j of N 0s. These are the vectors that will list if it has been (1) or not (0) an observations at time i for the particle j */
 /* create j empty vectors Y_j for the sampled events */
 /* create j empty vectors w_j for the unnormalised weights */
 /* create j empty vectors W_j for the normalised weights */
 
-  vector < vector < unsigned > > S;
-  unsigned n = 5;
+  vector < vector < unsigned > > S{};
+  vector < vector < double > > Y{};
+  vector < vector < double > > w{};
+  vector < vector < double > > W{};
+  unsigned n = 10;
   
   for ( unsigned i = 0; i < N; i++ ){
     vector < unsigned > s{};
@@ -170,7 +171,20 @@ int main(){
 
   cout << "Matrix S" << endl;
   print_matrix_unsigned(S);
- 
+
+  for ( unsigned j = 0; j < n; j++){
+    mt19937 generator( rd () );
+    normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
+    vector < double > y{};
+    y.push_back( normalDist ( generator ) );   
+    Y.push_back(y);
+  }
+
+  // Print out the vector Y
+  cout << "Matrix Y" << endl;
+  print_matrix_double(Y);
+
+  
 
 /* for i = 1 */
 /* for j = 1, ..., n */
@@ -214,5 +228,8 @@ void print_matrix_double( vector < vector < double > > M ){
     cout << endl;
   }
 }
+
+
+
 
 
