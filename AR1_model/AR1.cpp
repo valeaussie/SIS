@@ -47,7 +47,6 @@ int main(){
   }
   outFile.close();
    
-  // this is probably better done defining a structure?
 
   vector< unsigned > vector_Ki{};
   vector< unsigned > vector_i{};
@@ -100,18 +99,37 @@ int main(){
 
   sort( R.begin(), R.end() );
 
+  // Create a matrix z stacking all the times of observations up to time ki
+  // (specified in the fisrt column). The times are also sorted.
+  
   vector < vector < unsigned > > z{};
-  vector < unsigned > a{};
+  vector < unsigned > temp_vector{};
   for ( unsigned i = 0; i < R.size(); i++ ){
     for ( unsigned j = 1; j < R[i].size(); j++ ){
-      a.push_back(R[i][j]);   
+      temp_vector.push_back( R[i][j] );
+      sort( temp_vector.begin(), temp_vector.end() );
     }
-    z.push_back(a);
+    z.push_back( temp_vector );
   }
   for ( unsigned i = 0; i < R.size(); i++ ){
     z[i].insert(z[i].begin(), R[i][0]);
   }
 
+  // Create a matrix Z stacking all the values of the observations up to time ki
+
+  vector < vector < double > > Z{};
+  vector < double > temp_vect_double{};
+  for ( unsigned i = 0; i < z.size(); i++ ){
+    for ( unsigned j = 1; j < z[i].size(); j++ ){
+      //int temp_var = z[i][j];
+      //cout << temp_var << endl;
+      temp_vect_double.push_back(X[(z[i][j] - 1)]);
+    }
+    Z.push_back( temp_vect_double );
+    temp_vect_double.clear();
+  }
+  
+  
   // Print out the matrix R
 
   cout << "Matrix R" << endl;
@@ -131,16 +149,17 @@ int main(){
     cout << endl;
   }
 
-  // for (unsigned i = 0; i < R.size(); i++ ){
-  // cout << Z[i] << ' ';
-  // }
-  
+  // Print out the vector Z
+
+  cout << "Matrix Z" << endl;
+
+  for ( const vector < double > & v : Z ){
+    for  ( double x : v ) cout << x << ' ';
+    cout << endl;
+  }
  
   return 0;
 }
-
-/* create N empty vectors Z_(k_i) for (k_i) = 1, ..., N */
-/* for each (k_i), take each element of R_(k_i) and put the corresponding value of x_i in Z_(k_i) */
 
 /* calculate the expectation of the x_i */
 
