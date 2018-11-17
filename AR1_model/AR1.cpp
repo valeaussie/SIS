@@ -8,42 +8,41 @@
 using namespace std;
 
 /* this is the code to sample from my model and find the vector of the observations
-I am going to generate a vector X with the x_i as elements which are found sampling from the AR1 model I have specified. This will be the vector of the events.
-Then I am going to generate N, R_(k_i) vectors of the times of the events that happened at time i and have been observed at time k_i.
-Finally, I will generate N, Z_(k_i) vectors of observations of events that happened at time i and have been observed at time k_i.
-the values of the parameters at this stage are fixed and are sigma^2 = 1, phi = 0.5, p = 0.4, I also choose the value of N = 1000
+I am going to generate a vector X with the x_i as elements which are found sampling 
+from the AR1 model I have specified. This will be the vector of the events.
+Then I am going to generate N, R_(k_i) vectors of the times of the events 
+that happened at time i and have been observed at time k_i.
+Finally, I will generate N, Z_(k_i) vectors of observations of events 
+that happened at time i and have been observed at time k_i.
+the values of the parameters at this stage are fixed and are sigma^2 = 1, 
+phi = 0.5, p = 0.4, I also choose the value of N = 1000
 */
-
 
 const int sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.4;
-const unsigned N = 10;
-vector< double > X;
+const double N = 10;
+vector < double > X;
 
 void print_matrix_unsigned( vector < vector < unsigned > > m );
 void print_matrix_double( vector < vector < double > > M );
-
 
 random_device rd;
 
 int main(){
 
   // Sample from a normal distribution. Put the values in a vecotr X.
-    
   mt19937 generator( rd () );
   normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
-
   X.push_back( normalDist ( generator ) );
   
-  for ( unsigned i = 2; i < N + 1; i++ ){
+  for ( unsigned i = 1; i < N; i++ ){
     normal_distribution < double > normalDist( phi * X[i - 1], sigmasq );
     X.push_back( normalDist ( generator ) );
   }
   
   // Create a dat file with the values of X, this is useful to graph with gnuplot
-  
-  std::ofstream outFile( "./vector_X.dat" );
+    std::ofstream outFile( "./vector_X.dat" );
   outFile << "values of X" << endl;
   for ( double n : X ){
     outFile << n << endl;
@@ -56,13 +55,13 @@ int main(){
   vector< vector < unsigned > > r{};
 
   // Sample from a geometric distribution the values ti
-  
-  for ( unsigned i = 1; i < N + 1; i++ ){
+    for ( unsigned i = 1; i < N + 1; i++ ){
     geometric_distribution <> geoDist(p);
     unsigned ti = geoDist ( generator );
 
-    // Find Ki as ti + i. Create the RKi vectors and put Ki as first value then i. Store all this vectors in a vector of vectors (matrix) r
-    
+    // Find Ki as ti + i.
+    //Create the RKi vectors and put Ki as first value then i.
+    //Store all this vectors in a vector of vectors (matrix) r
     if ( ti > N - i ){}
     else {
       unsigned ki = i + ti;
@@ -77,9 +76,10 @@ int main(){
     }
   }
   
-  // If two lines of the matrix r have the same ki (first element) add the second element of the second vector to the first vector and set the second vector to be all made of 0
-  
-  for ( unsigned i = 0; i < r.size(); i++ ){
+  // If two lines of the matrix r have the same ki (first element)
+  // add the second element of the second vector to the first vector
+  // and set the second vector to be all made of 0
+    for ( unsigned i = 0; i < r.size(); i++ ){
     for ( unsigned j = i + 1 ; j < r.size(); j++ ){
       if ( r[j][0] == r[i][0] ){
 	r[i].push_back( r[j][1] );
@@ -90,36 +90,32 @@ int main(){
   }
 
   // Delete all zeroes from r and call it R
-  
-  vector < vector < unsigned > > R{};
-  for ( unsigned i = 0; i < r.size(); i++ ){
-    if ( r[i][0] != 0 ){
-      R.push_back( r[i] );
+    vector < vector < unsigned > > R{};
+    for ( unsigned i = 0; i < r.size(); i++ ){
+      if ( r[i][0] != 0 ){
+	R.push_back( r[i] );
+      }
     }
-  }
 
   // Sort the matrix R by the first column
-
-  sort( R.begin(), R.end() );
+    sort( R.begin(), R.end() );
 
   // Create a matrix z stacking all the times of observations up to time ki
   // (specified in the fisrt column). The times are also sorted.
-  
-  vector < vector < unsigned > > z{};
-  vector < unsigned > temp_vector{};
-  for ( unsigned i = 0; i < R.size(); i++ ){
-    for ( unsigned j = 1; j < R[i].size(); j++ ){
-      temp_vector.push_back( R[i][j] );
-      sort( temp_vector.begin(), temp_vector.end() );
+    vector < vector < unsigned > > z{};
+    vector < unsigned > temp_vector{};
+    for ( unsigned i = 0; i < R.size(); i++ ){
+      for ( unsigned j = 1; j < R[i].size(); j++ ){
+	temp_vector.push_back( R[i][j] );
+	sort( temp_vector.begin(), temp_vector.end() );
+      }
+      z.push_back( temp_vector );
     }
-    z.push_back( temp_vector );
-  }
-  for ( unsigned i = 0; i < R.size(); i++ ){
-    z[i].insert(z[i].begin(), R[i][0]);
-  }
-
+    for ( unsigned i = 0; i < R.size(); i++ ){
+      z[i].insert(z[i].begin(), R[i][0]);
+    }
+    
   // Create a matrix Z stacking all the values of the observations up to time ki
-
   vector < vector < double > > Z{};
   vector < double > temp_vect_double{};
   for ( unsigned i = 0; i < z.size(); i++ ){
@@ -150,47 +146,77 @@ int main(){
    i here is the index for the current time that goes from 1 to N, 
    j is the index for the particles that goes from 1 to n. I choose n to be 10 */
 
-// create j vectors S_j of N 0s. These are the vectors that will list if it has been (1) or not (0) an observations at time i for the particle j */
-/* create j empty vectors Y_j for the sampled events */
-/* create j empty vectors w_j for the unnormalised weights */
-/* create j empty vectors W_j for the normalised weights */
-
   vector < vector < unsigned > > S{};
   vector < vector < double > > Y{};
-  vector < vector < double > > w{};
+  vector < vector < double > > V{};
   vector < vector < double > > W{};
-  unsigned n = 10;
-  
-  for ( unsigned i = 0; i < N; i++ ){
-    vector < unsigned > s{};
+  unsigned n = 5;
+
+  // This is the matrix S of the observations
+  // The rows are indexd as j and are for  the particles (n)
+  // The columns are indexed as i and are for the number of events (N)
+  // It is a matrix of 0s (observation) and 1s (no observation)
     for ( unsigned j = 0; j < n; j++ ){
+    vector < unsigned > s{};
+    for ( unsigned i = 0; i < N; i++ ){
       s.push_back(0);
     }
     S.push_back(s);
   }
 
-  cout << "Matrix S" << endl;
-  print_matrix_unsigned(S);
+  // This is the calculations matrix Y of the simulated events.
+  // In the first column of the matrix we have the values for f(x_1) for all the j particles
 
+  // Creating a vector temp_y simulating from a normal distribution
+  // This vector will be used as a starting point to simulate all other n vectors y of lenght N
+  // that will populate the matrix Y
+  vector < double > y{};
+  vector < double > temp_y{};
   for ( unsigned j = 0; j < n; j++){
     mt19937 generator( rd () );
     normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
-    vector < double > y{};
-    y.push_back( normalDist ( generator ) );   
-    Y.push_back(y);
+    temp_y.push_back( normalDist ( generator ) );
   }
 
-  // Print out the vector Y
+  // This is the matrix V of the unnormalised weights
+  for ( unsigned j = 0; j < n; j++){
+    vector < double > v{};
+    v.push_back(1);
+    V.push_back(v);
+  }
+
+  // This is the matrix W of the normalised weights
+  for ( unsigned j = 0; j < n; j++ ){
+    vector < double > w{};
+    w.push_back( 1 / N );
+    W.push_back(w);
+  }
+
+  // This is the calculation of Y with n rows and N columns
+  for ( unsigned j = 0; j < n; j++ ){
+    for ( unsigned i = 1; i < N; i++ ){
+      normal_distribution < double > normalDist( phi * temp_y[i - 1], sigmasq );
+      y.push_back( normalDist ( generator ) );
+    }
+    Y.push_back(y);
+    y.clear();
+  }
+  
+   // Putting back the vector temp_y as first column for Y
+  for ( unsigned i = 0; i < n; i++ ){
+    Y[i].insert( Y[i].begin(), temp_y[i]);
+  }
+
+  // Print out the vector temp_y
+  cout << " vector temp_y " << endl;
+  for ( unsigned i = 0; i < n; i++ ){
+    cout << temp_y[i] << endl; 
+  }
+
+  // Print out the matrix Y
   cout << "Matrix Y" << endl;
   print_matrix_double(Y);
-
   
-
-/* for i = 1 */
-/* for j = 1, ..., n */
-/* sample j values for y_(1_j) and put each value as first element of the corresponding vector Y_j. We define the fist observations to be 0 for every j (we don't need to change anything in the vecotrs S_j) */
-      /* set j unnormalised importance weights w_(1_j) = 1, and save this as first elements of all w_j */
-      /* set j normalised importance weight W_(1_j) = 1/N, and save this as first elements of all W_j */
 /* for i = 2, ..., N */
    /* for j = 1, ..., n */
       /* sample from a normal distribution with mean = phi * y_(i - 1) and var = sigma^2 and find the values for y_(i_j), put these as ith elements of the vectors Y_j */
@@ -214,6 +240,8 @@ int main(){
 /* calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j) */
   return 0;
 }
+
+// functions definitions
 
 void print_matrix_unsigned( vector < vector < unsigned > > m ){
   for ( const vector < unsigned > & v : m ){
