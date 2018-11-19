@@ -21,7 +21,7 @@ phi = 0.5, p = 0.4, I also choose the value of N = 1000
 const int sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.4;
-const double N = 10;
+const double N = 3;
 vector < double > X;
 
 void print_matrix_unsigned( vector < vector < unsigned > > m );
@@ -114,11 +114,19 @@ int main(){
     for ( unsigned i = 0; i < R.size(); i++ ){
       z[i].insert(z[i].begin(), R[i][0]);
     }
+
+    for ( unsigned i = 0; i < z.size(); i++){
+      if ( z[i][0] != i + 1 ){
+	cout << " that " << endl;
+    	//vector < unsigned > temp{0};
+	//z.push_back(temp);
+      }
+    }
     
   // Create a matrix Z stacking all the values of the observations up to time ki
   vector < vector < double > > Z{};
-  vector < double > temp_vect_double{};
   for ( unsigned i = 0; i < z.size(); i++ ){
+    vector < double > temp_vect_double{};
     for ( unsigned j = 1; j < z[i].size(); j++ ){
       temp_vect_double.push_back( X[ ( z[i][j] - 1 ) ] );
     }
@@ -128,10 +136,16 @@ int main(){
   for ( unsigned i = 0; i < z.size(); i++ ){
     Z[i].insert( Z[i].begin(), z[i][0] );
   }
-  
+
   // Print out the matrix R
   cout << "Matrix R" << endl;
   print_matrix_unsigned(R);
+
+  
+  // Print out the matrix r
+  cout << "Matrix r" << endl;
+  print_matrix_unsigned(r);
+  
   
   // Print out the matrix z
   cout << "Matrix z" << endl;
@@ -141,7 +155,6 @@ int main(){
   cout << "Matrix Z" << endl;
   print_matrix_double(Z);
 
- 
   /* this is the code for the method
    i here is the index for the current time that goes from 1 to N, 
    j is the index for the particles that goes from 1 to n. I choose n to be 10 */
@@ -150,7 +163,7 @@ int main(){
   vector < vector < double > > Y{};
   vector < vector < double > > V{};
   vector < vector < double > > W{};
-  unsigned n = 10;
+  unsigned n = 2;
 
   // This is the matrix S of the observations
   // The rows are indexd as j and are for  the particles (n)
@@ -206,13 +219,12 @@ int main(){
   for ( unsigned i = 0; i < n; i++ ){
     Y[i].insert( Y[i].begin(), temp_y[i]);
   }
+  
+  // Print out the vector Y
+  //cout << "Matrix Y" << endl;
+  //print_matrix_double(Y);
 
-  // Print out the vector temp_y
-  cout << " vector temp_y " << endl;
-  for ( unsigned i = 0; i < n; i++ ){
-    cout << temp_y[i] << endl; 
-  }
-
+  
   // Sampling from a geometric distribution with p = 0.4
   // find t_(i_j) for particle j (time of the next observation of the event that happened at time i).
   // If t_(i_j) > N - i multiply y_i by (1 - p)^(N - i) and find the new y_i in the vectors Y_j.
@@ -257,21 +269,68 @@ int main(){
     }
   }
 
+  // Print out the vector S
+  cout << "Matrix S" << endl;
+  print_matrix_unsigned(S);
 
-      /* create j vectors V_(i_j) taking the first i elements of S_(i_j) for each particle j. These are the vectors that will list all the observations (1) or missed observation (0) for the particle j up to time i*/
-      /* if k_i for vector V_(i_j) is 0 and R_(k_i) is empty (no observation in either real life or simulation) the importance weights will be w_(i_j) = w_[(i - 1)_j] else continue*/
-      /* if k_i for vector V_(i_j) is 0 and R_(k_i) is not empty (observation in real life, no observation simulated), 
-         make the substitutions putting the elements of the vector Z_(k_i) in Y_i^(j) in positions i, 
-         then calculate the weights w_i^(j) = w_[(i - 1)_j] * (1 - p)^(t_i + i - N - 1) else continue */
-      /* if k_i for vector V_(i_j) is 1 and R_(k_i) is not empty (observation in real life and in the simulation) the importance weights will be w_(i_j) = w_[(i - 1)_j] else continue*/
-      /* if k_i for vector V_(i_j) is 0 and R_(k_i) is empty (observation in real life, no observation simulated
-         make the substitutions putting the elements of the vector Z_(k_i) in Y_(i_j) in positions i,
-         then calculate the weights w_(i_j) = w_[(i - 1)_j] * (1 - p)^(N - t_i - i + 1) else continue */
+  // Create a vector L with the first column of Z
+  // These are the observations in real life
+  vector < unsigned > L;
+  for ( unsigned i = 0; i < z.size(); i++ ){
+    L.push_back(Z[i][0]);
+  }
+  cout << "vector L" << endl; 
+  for (unsigned i = 0; i < z.size(); i++){
+    cout << L[i] << endl;
+  }
 
-   /* for j = 1, ..., n */
-   /* normalise the importance weights W_(i_j) = w_(i_j) / sum for j from 2 to N of w_(t_j)*/
+  /* if i for vector L is 0 and the element S[j][i] is 1 
+     (no observation in either real life or simulation) 
+     the importance weights will be w_(i_j) = w_[(i - 1)_j] else continue*/
+  /* if i for vector L is 1 and the element S[j][i] is 0
+     (observation in real life, no observation simulated), 
+     make the substitutions putting the elements of the vector Z_(k_i) in Y_i^(j) in positions i, 
+     then calculate the weights w_i^(j) = w_[(i - 1)_j] * (1 - p)^(t_i + i - N - 1) else continue */
+  /* if i for vector L is 1 and the element S[j][i] is zero1
+     (observation in real life and in the simulation) 
+     the importance weights will be w_(i_j) = w_[(i - 1)_j] else continue*/
+  /* if k_i for vector V_(i_j) is 0 and R_(k_i) is empty 
+     (observation in real life, no observation simulated)
+     make the substitutions putting the elements of the vector Z_(k_i) in Y_(i_j) in positions i,
+     then calculate the weights w_(i_j) = w_[(i - 1)_j] * (1 - p)^(N - t_i - i + 1) else continue */
 
-/* calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j) */
+  for ( unsigned i = 1; i < N; i++ ){
+    for ( unsigned j = 0; j < n; j++ ){
+      cout << i << j << endl;
+      bool contains_value {false};
+      for ( unsigned k = 1; k < L.size(); k++){
+	if ( L[k] == i ){
+	  contains_value = true;
+	  break;
+	}
+      }
+      if ( ( S[j][i] == 0 ) && ( contains_value = true ) ){
+  	cout << " a " << endl;
+      }
+      if ( ( S[j][i] == 0 ) && ( contains_value = false ) ){
+  	cout << " b " << endl;
+      }
+      if (( S[j][i] == 1 ) && ( contains_value = false ) ){
+	cout << " c " << endl;
+      }
+      if (( S[j][i] == 1 ) && ( contains_value = true ) ){
+	cout << " d " << endl;
+      }
+    }
+  }
+  
+
+  
+
+  /* for j = 1, ..., n */
+  /* normalise the importance weights W_(i_j) = w_(i_j) / sum for j from 2 to N of w_(t_j)*/
+
+  /* calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j) */
   return 0;
 }
 
