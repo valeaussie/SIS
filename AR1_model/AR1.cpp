@@ -150,7 +150,7 @@ int main(){
   vector < vector < double > > Y{};
   vector < vector < double > > V{};
   vector < vector < double > > W{};
-  unsigned n = 5;
+  unsigned n = 10;
 
   // This is the matrix S of the observations
   // The rows are indexd as j and are for  the particles (n)
@@ -213,16 +213,50 @@ int main(){
     cout << temp_y[i] << endl; 
   }
 
-  // Print out the matrix Y
-  cout << "Matrix Y" << endl;
-  print_matrix_double(Y);
-  
-/* for i = 2, ..., N */
-   /* for j = 1, ..., n */
-      /* sample from a normal distribution with mean = phi * y_(i - 1) and var = sigma^2 and find the values for y_(i_j), put these as ith elements of the vectors Y_j */
-      /* sample from a geometric distribution with p = 0.4 and find t_(i_j) for particle j, which is the time of the next observation of the event that happened at time i */
-         /* if t_(i_j) > N - i multiply y_i by (1 - p)^(N - i) and find the new y_i in the vectors Y_j then do nothing else*/
-         /* else multiply y_i by p(1 - p)^(t_i - 1) and find the new y_i then in the vector S_(i_j) in position k_i = i + t_i, substitute the existing value with a 1 */
+  // Sampling from a geometric distribution with p = 0.4
+  // find t_(i_j) for particle j (time of the next observation of the event that happened at time i).
+  // If t_(i_j) > N - i multiply y_i by (1 - p)^(N - i) and find the new y_i in the vectors Y_j.
+  // Else multiply y_i by p(1 - p)^(t_i - 1) and find the new y_i
+  // and in the vector S_(i_j) in position k_i = i + t_i, substitute the existing value with a 1.
+  for ( unsigned i = 0; i < N; i++ ){
+    for ( unsigned j = 0; j < n; j++ ){
+      geometric_distribution <> geoDist(p);
+      unsigned ti = geoDist ( generator );
+      // cout << ti << endl;
+      double exp1;
+      double exp2;
+      if ( ti >= N - i ){
+	// cout <<  " ti >= N - i " << endl;
+	if ( (N - i) == 1){
+	  exp1 = (1 - p);
+	}
+	else {
+	  for ( unsigned k = 1; k < (N - i); k++ ){
+	    exp1 = (1 - p) * (1 - p);
+	  }
+	}
+	Y[j][i] = Y[j][i] * exp1;
+      }
+      else {
+	// cout <<  " ti infinity " << endl;
+	if ( ti == 0 ){
+	  exp2 = 1;
+	    }
+	else if ( ti == 1 ){
+	  exp2 =(1 - p);
+	}
+	else {
+	  for ( unsigned k = 1; k < ti - 1; k++ ){
+	    exp2 = (1 - p) * (1 - p);
+	  }
+	}
+	Y[j][i] = Y[j][i] * p * exp2;
+	unsigned ki = ti + i;
+	S[j][ki] = 1;
+      }
+    }
+  }
+
 
       /* create j vectors V_(i_j) taking the first i elements of S_(i_j) for each particle j. These are the vectors that will list all the observations (1) or missed observation (0) for the particle j up to time i*/
       /* if k_i for vector V_(i_j) is 0 and R_(k_i) is empty (no observation in either real life or simulation) the importance weights will be w_(i_j) = w_[(i - 1)_j] else continue*/
