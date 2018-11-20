@@ -4,6 +4,7 @@
 #include <fstream>
 #include <map>
 #include <algorithm>
+#include <math.h>
 
 using namespace std;
 
@@ -40,6 +41,8 @@ int main(){
     normal_distribution < double > normalDist( phi * X[i - 1], sigmasq );
     X.push_back( normalDist ( generator ) );
   }
+
+  cout << X.size() << endl;
   
   // Create a dat file with the values of X, this is useful to graph with gnuplot
     std::ofstream outFile( "./vector_X.dat" );
@@ -49,32 +52,36 @@ int main(){
   }
   outFile.close();
    
-
-  vector< unsigned > vector_Ki{};
-  vector< unsigned > vector_i{};
-  vector< vector < unsigned > > r{};
+  vector < unsigned > vector_ti{};
+  vector < unsigned > vector_Ki{};
+  vector < unsigned > vector_i{};
+  vector < vector < unsigned > > r{};
 
   // Sample from a geometric distribution the values ti
-    for ( unsigned i = 1; i < N + 1; i++ ){
+    for ( unsigned i = 0; i < N; i++ ){
     geometric_distribution <> geoDist(p);
     unsigned ti = geoDist ( generator );
-
+    vector_ti.push_back(ti);
+    cout << " vector ti " << ti << endl;
     // Find Ki as ti + i.
     //Create the RKi vectors and put Ki as first value then i.
     //Store all this vectors in a vector of vectors (matrix) r
-    if ( ti > N - i ){}
+    if ( ti >= N - i ){}
     else {
       unsigned ki = i + ti;
       vector_i.push_back(i);
-      /* cout << "i " << vector_i.back() << endl; */
       vector_Ki.push_back(ki);
-      /*  cout << "Ki " << vector_Ki.back() << endl; */
       vector < unsigned > Rki;
       Rki.push_back(ki);
       Rki.push_back(i);
       r.push_back(Rki);
     }
   }
+
+      
+  // Print out the matrix r
+  cout << "Matrix r" << endl;
+  print_matrix_unsigned(r);
   
   // If two lines of the matrix r have the same ki (first element)
   // add the second element of the second vector to the first vector
@@ -89,7 +96,11 @@ int main(){
     }
   }
 
-  // Delete all zeroes from r and call it R
+    // Print out the matrix r
+    cout << "New Matrix r" << endl;
+    print_matrix_unsigned(r);
+
+    // Delete all zeroes from r and call it R
     vector < vector < unsigned > > R{};
     for ( unsigned i = 0; i < r.size(); i++ ){
       if ( r[i][0] != 0 ){
@@ -97,8 +108,18 @@ int main(){
       }
     }
 
+     // Print out the matrix R
+    cout << "Matrix R" << endl;
+    print_matrix_unsigned(R);
+
+
   // Sort the matrix R by the first column
     sort( R.begin(), R.end() );
+
+    
+     // Print out the matrix R
+    cout << "New Matrix R" << endl;
+    print_matrix_unsigned(R);
 
   // Create a matrix z stacking all the times of observations up to time ki
   // (specified in the fisrt column). The times are also sorted.
@@ -115,20 +136,17 @@ int main(){
       z[i].insert(z[i].begin(), R[i][0]);
     }
 
-    for ( unsigned i = 0; i < z.size(); i++){
-      if ( z[i][0] != i + 1 ){
-	cout << " that " << endl;
-    	//vector < unsigned > temp{0};
-	//z.push_back(temp);
-      }
-    }
     
+     // Print out the matrix z
+    cout << "Matrix z" << endl;
+    print_matrix_unsigned(z);
+   
   // Create a matrix Z stacking all the values of the observations up to time ki
   vector < vector < double > > Z{};
   for ( unsigned i = 0; i < z.size(); i++ ){
     vector < double > temp_vect_double{};
     for ( unsigned j = 1; j < z[i].size(); j++ ){
-      temp_vect_double.push_back( X[ ( z[i][j] - 1 ) ] );
+      temp_vect_double.push_back( X[ ( z[i][j] ) ] );
     }
     Z.push_back( temp_vect_double );
     temp_vect_double.clear();
@@ -137,21 +155,7 @@ int main(){
     Z[i].insert( Z[i].begin(), z[i][0] );
   }
 
-  // Print out the matrix R
-  cout << "Matrix R" << endl;
-  print_matrix_unsigned(R);
-
-  
-  // Print out the matrix r
-  cout << "Matrix r" << endl;
-  print_matrix_unsigned(r);
-  
-  
-  // Print out the matrix z
-  cout << "Matrix z" << endl;
-  print_matrix_unsigned(z);
-
-  // Print out the vector Z
+  // Print out the matrix Z
   cout << "Matrix Z" << endl;
   print_matrix_double(Z);
 
@@ -291,38 +295,57 @@ int main(){
      (observation in real life, no observation simulated), 
      make the substitutions putting the elements of the vector Z_(k_i) in Y_i^(j) in positions i, 
      then calculate the weights w_i^(j) = w_[(i - 1)_j] * (1 - p)^(t_i + i - N - 1) else continue */
-  /* if i for vector L is 1 and the element S[j][i] is zero1
+  /* if i for vector L is 1 and the element S[j][i] is 1
      (observation in real life and in the simulation) 
      the importance weights will be w_(i_j) = w_[(i - 1)_j] else continue*/
-  /* if k_i for vector V_(i_j) is 0 and R_(k_i) is empty 
+  /* if i for vector L is 1 and the element S[j][i] is 0
      (observation in real life, no observation simulated)
      make the substitutions putting the elements of the vector Z_(k_i) in Y_(i_j) in positions i,
      then calculate the weights w_(i_j) = w_[(i - 1)_j] * (1 - p)^(N - t_i - i + 1) else continue */
 
+  cout << " N = " << N << endl;
   for ( unsigned i = 1; i < N; i++ ){
-    for ( unsigned j = 0; j < n; j++ ){
-      cout << i << j << endl;
+    vector < double > w{};
+    
       bool contains_value {false};
-      for ( unsigned k = 1; k < L.size(); k++){
+      for ( unsigned k = 0; k < L.size(); k++){
 	if ( L[k] == i ){
 	  contains_value = true;
 	  break;
 	}
       }
-      if ( ( S[j][i] == 0 ) && ( contains_value = true ) ){
-  	cout << " a " << endl;
+      cout << contains_value << endl;
+      for ( unsigned j = 0; j < n; j++ ){
+      if ( ( S[j][i] == 0 ) && ( contains_value == true ) ){
+	cout << " a " << endl;
+	w.push_back(W[j][i]);
+	W.push_back(w);
       }
-      if ( ( S[j][i] == 0 ) && ( contains_value = false ) ){
-  	cout << " b " << endl;
+      if ( ( S[j][i] == 0 ) && ( contains_value == false ) ){
+	cout << " b " << endl;
+	double power{};
+	power = pow ( (1 - p), (vector_ti[i] + i - N - 1) );
+	w.push_back( W[j][i] * power );
+	W.push_back(w);
       }
-      if (( S[j][i] == 1 ) && ( contains_value = false ) ){
+      if ( ( S[j][i] == 1 ) && ( contains_value == false ) ){
 	cout << " c " << endl;
+	double power{};
+	power = pow ( (1 - p), (vector_ti[i] + i - N - 1) );
+	w.push_back( W[j][i] * (-power) );
+	W.push_back(w);
       }
-      if (( S[j][i] == 1 ) && ( contains_value = true ) ){
+      if ( ( S[j][i] == 1 ) && ( contains_value == true ) ){
 	cout << " d " << endl;
+	w.push_back(W[j][i]);
+	W.push_back(w);
       }
     }
   }
+
+  // Print out the vector W
+  cout << "Matrix W" << endl;
+  print_matrix_double(W);
   
 
   
@@ -336,6 +359,7 @@ int main(){
 
 // functions definitions
 
+// this function prints a matrix of unsigned
 void print_matrix_unsigned( vector < vector < unsigned > > m ){
   for ( const vector < unsigned > & v : m ){
     for  ( unsigned x : v ) cout << x << ' ';
@@ -343,12 +367,14 @@ void print_matrix_unsigned( vector < vector < unsigned > > m ){
   }
 }
 
+// this function prints a matrix of signed
 void print_matrix_double( vector < vector < double > > M ){
   for ( const vector < double > & v : M ){
     for  ( double x : v ) cout << x << ' ';
     cout << endl;
   }
 }
+
 
 
 
