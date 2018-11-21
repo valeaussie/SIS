@@ -22,7 +22,7 @@ phi = 0.5, p = 0.4, I also choose the value of N = 1000
 const int sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.4;
-const double N = 3;
+const double N = 5;
 vector < double > X;
 
 void print_matrix_unsigned( vector < vector < unsigned > > m );
@@ -166,8 +166,9 @@ int main(){
   vector < vector < unsigned > > S{};
   vector < vector < double > > Y{};
   vector < vector < double > > V{};
+  vector < vector < double > > w{};
   vector < vector < double > > W{};
-  unsigned n = 2;
+  unsigned n = 3;
 
   // This is the matrix S of the observations
   // The rows are indexd as j and are for  the particles (n)
@@ -198,14 +199,18 @@ int main(){
   // This is the matrix V of the unnormalised weights
   for ( unsigned j = 0; j < n; j++){
     vector < double > v{};
-    v.push_back(1);
+    for ( unsigned i = 0; i < N; i++) {
+      v.push_back(1);
+    }
     V.push_back(v);
   }
 
   // This is the matrix W of the normalised weights
   for ( unsigned j = 0; j < n; j++ ){
     vector < double > w{};
-    w.push_back( 1 / N );
+    for ( unsigned i = 0; i < N; i++) {
+      w.push_back( 1 / N );
+    }
     W.push_back(w);
   }
 
@@ -238,11 +243,9 @@ int main(){
     for ( unsigned j = 0; j < n; j++ ){
       geometric_distribution <> geoDist(p);
       unsigned ti = geoDist ( generator );
-      // cout << ti << endl;
       double exp1;
       double exp2;
       if ( ti >= N - i ){
-	// cout <<  " ti >= N - i " << endl;
 	if ( (N - i) == 1){
 	  exp1 = (1 - p);
 	}
@@ -254,7 +257,6 @@ int main(){
 	Y[j][i] = Y[j][i] * exp1;
       }
       else {
-	// cout <<  " ti infinity " << endl;
 	if ( ti == 0 ){
 	  exp2 = 1;
 	    }
@@ -283,69 +285,90 @@ int main(){
   for ( unsigned i = 0; i < z.size(); i++ ){
     L.push_back(Z[i][0]);
   }
-  cout << "vector L" << endl; 
+  cout << "vector L" <<  endl; 
   for (unsigned i = 0; i < z.size(); i++){
     cout << L[i] << endl;
   }
 
+  cout << " " << endl;
+
   /* if i for vector L is 0 and the element S[j][i] is 1 
      (no observation in either real life or simulation) 
-     the importance weights will be w_(i_j) = w_[(i - 1)_j] else continue*/
+     the importance weights will be w_(i_j) = w_[(i - 1)_j] */
   /* if i for vector L is 1 and the element S[j][i] is 0
      (observation in real life, no observation simulated), 
      make the substitutions putting the elements of the vector Z_(k_i) in Y_i^(j) in positions i, 
-     then calculate the weights w_i^(j) = w_[(i - 1)_j] * (1 - p)^(t_i + i - N - 1) else continue */
-  /* if i for vector L is 1 and the element S[j][i] is 1
-     (observation in real life and in the simulation) 
-     the importance weights will be w_(i_j) = w_[(i - 1)_j] else continue*/
+     then calculate the weights w_i^(j) = w_[(i - 1)_j] * (1 - p)^(t_i + i - N - 1) */
   /* if i for vector L is 1 and the element S[j][i] is 0
      (observation in real life, no observation simulated)
      make the substitutions putting the elements of the vector Z_(k_i) in Y_(i_j) in positions i,
-     then calculate the weights w_(i_j) = w_[(i - 1)_j] * (1 - p)^(N - t_i - i + 1) else continue */
-
-  cout << " N = " << N << endl;
+     then calculate the weights w_(i_j) = w_[(i - 1)_j] * (1 - p)^(N - t_i - i + 1) */
+  /* if i for vector L is 1 and the element S[j][i] is 1
+     (observation in real life and in the simulation) 
+     the importance weights will be w_(i_j) = w_[(i - 1)_j]*/
+  
   for ( unsigned i = 1; i < N; i++ ){
     vector < double > w{};
     
-      bool contains_value {false};
-      for ( unsigned k = 0; k < L.size(); k++){
-	if ( L[k] == i ){
-	  contains_value = true;
-	  break;
-	}
+    bool contains_value {false};
+    for ( unsigned k = 0; k < L.size(); k++){
+      if ( L[k] == i ){
+	contains_value = true;
+	break;
       }
-      cout << contains_value << endl;
-      for ( unsigned j = 0; j < n; j++ ){
-      if ( ( S[j][i] == 0 ) && ( contains_value == true ) ){
-	cout << " a " << endl;
-	w.push_back(W[j][i]);
-	W.push_back(w);
-      }
+    }
+    cout << contains_value << endl;
+    for ( unsigned j = 0; j < n; j++ ){
       if ( ( S[j][i] == 0 ) && ( contains_value == false ) ){
+	cout << " a " << endl;
+	V[j][i] = V[j][i - 1];
+      }
+      
+      else if ( ( S[j][i] == 0 ) && ( contains_value == true ) ){
 	cout << " b " << endl;
-	double power{};
-	power = pow ( (1 - p), (vector_ti[i] + i - N - 1) );
-	w.push_back( W[j][i] * power );
-	W.push_back(w);
+	
+	double pow1{};
+	if ( ( vector_ti[i] + i - N - 1 ) == 0){
+	  pow1 = 1;
+	}
+	else if ( (vector_ti[i] + i - N - 1) == 1){
+	  pow1 = (1 - p);
+	}
+	else {
+	  pow1 = pow ( (1 - p), ( vector_ti[i] + i - N - 1 ) );
+	}
+	
+	cout << "pow1 " << pow1 << endl;
+	V[j][i] = V[j][i - 1] * pow1 ;
       }
-      if ( ( S[j][i] == 1 ) && ( contains_value == false ) ){
+      
+      else if ( ( S[j][i] == 1 ) && ( contains_value == false ) ){
 	cout << " c " << endl;
-	double power{};
-	power = pow ( (1 - p), (vector_ti[i] + i - N - 1) );
-	w.push_back( W[j][i] * (-power) );
-	W.push_back(w);
+	
+	double pow2{};
+	if ( (N - vector_ti[i] - i + 1) == 0){
+	  pow2 = 1;
+	}
+	else if ( (N - vector_ti[i] - i + 1) == 1){
+	  pow2 = (1 - p);
+	}
+	else {
+	  pow2 = pow ( (1 - p), ( N - vector_ti[i] - i + 1 ) );
+	}
+	
+	cout << " pow2 " << pow2 << endl;
+	V[j][i] = V[j][i - 1] * pow2 ;
       }
-      if ( ( S[j][i] == 1 ) && ( contains_value == true ) ){
+      else if ( ( S[j][i] == 1 ) && ( contains_value == true ) ){
 	cout << " d " << endl;
-	w.push_back(W[j][i]);
-	W.push_back(w);
+	V[j][i] = V[j][i - 1];
       }
     }
   }
 
-  // Print out the vector W
-  cout << "Matrix W" << endl;
-  print_matrix_double(W);
+  // Print out the vector V
+  cout << "Matrix V" << endl;
+  print_matrix_double(V);
   
 
   
