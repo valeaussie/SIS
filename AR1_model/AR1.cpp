@@ -23,36 +23,38 @@ const int sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.4;
 const double N = 5;
-vector < double > X;
+vector < double > X{};
 
 void print_matrix_sizet( vector < vector < size_t > > m );
 void print_matrix_double( vector < vector < double > > M );
 
 random_device rd;
+mt19937 generator( rd () );
+
 
 int main(){
 
   // Sample from a normal distribution. Put the values in a vecotr X.
-  mt19937 generator( rd () );
-  normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
+  
+   normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
   X.push_back( normalDist ( generator ) );
   
-  for ( size_t i = 1; i < N; i++ ){
+  for ( size_t i = 1; i < N; i++ ){  
     normal_distribution < double > normalDist( phi * X[i - 1], sigmasq );
     X.push_back( normalDist ( generator ) );
   }
   
   // Create a dat file with the values of X, this is useful to graph with gnuplot
   std::ofstream outFile( "./vector_X.dat" );
-  outFile << "values of X" << endl;
+  outFile  << endl;
   for ( double n : X ){
     outFile << n << endl;
   }
   outFile.close();
    
-  vector < unsigned > vector_ti{};
-  vector < unsigned > vector_Ki{};
-  vector < unsigned > vector_i{};
+  vector < size_t > vector_ti{};
+  vector < size_t > vector_Ki{};
+  vector < size_t > vector_i{};
   vector < vector < size_t > > r{};
 
   // Sample from a geometric distribution the values ti
@@ -129,123 +131,131 @@ int main(){
   }
 
   /* this is the code for the method
-   i here is the index for the current time that goes from 1 to N, 
-   j is the index for the particles that goes from 1 to n. I choose n to be 10 */
+     i here is the index for the current time that goes from 1 to N, 
+     j is the index for the particles that goes from 1 to n. I choose n to be 10 */
 
   vector < vector < size_t > > S{};
-  vector < vector < double > > Y{};
+  vector < vector < double > > sample{};
+  vector < vector < double > > new_sample{};
   vector < vector < double > > V{};
-  vector < vector < double > > w{};
   vector < vector < double > > W{};
-  size_t n = 3;
+  double n =3;
 
   // This is the matrix S of the observations
-  // The rows are indexd as j and are for  the particles (n)
-  // The columns are indexed as i and are for the number of events (N)
+  // The columns are indexd as j and are for  the particles (n)
+  // The rows are indexed as i and are for the number of events (N)
   // It is a matrix of 0s (observation) and 1s (no observation)
-    for ( size_t j = 0; j < n; j++ ){
+  /*   for ( size_t i = 0; i < N; i++ ){
     vector < size_t > s{};
-    for ( size_t i = 0; i < N; i++ ){
+    for ( size_t j = 0; j < n; j++ ){
       s.push_back(0);
     }
     S.push_back(s);
   }
 
-  // This is the calculations matrix Y of the simulated events.
-  // In the first column of the matrix we have the values for f(x_1) for all the j particles
+    print_matrix_sizet(S); */
 
-  // Creating a vector temp_y simulating from a normal distribution
-  // This vector will be used as a starting point to simulate all other n vectors y of lenght N
+  // This is the calculations matrix Y of the simulated events.
+  // In the first raw of the matrix we have the values for f(x_1) for all the j particles
+
+  // Creating a vector y simulating from a normal distribution with mean 0 and variance sigma^2/(1-phi^2)
+  // This vector will be used as a starting point to simulate all other n vectors y of lenght n
   // that will populate the matrix Y
   vector < double > y{};
-  vector < double > temp_y{};
   for ( unsigned j = 0; j < n; j++){
-    mt19937 generator( rd () );
     normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
-    temp_y.push_back( normalDist ( generator ) );
+    y.push_back( normalDist ( generator ) );
   }
+  sample.push_back(y);
+  new_sample.push_back(y);
 
-  // This is the matrix V of the unnormalised weights
-  for ( size_t j = 0; j < n; j++){
-    vector < double > v{};
-    for ( size_t i = 0; i < N; i++) {
-      v.push_back(1);
-    }
-    V.push_back(v);
+  // This is the vector v of the unnormalised weights
+  vector < double > v{};
+  for ( size_t j = 0; j < n; j++) {
+    v.push_back(0);
   }
+  V.push_back(v);
+  v.clear();
 
-  // This is the matrix W of the normalised weights
-  for ( size_t j = 0; j < n; j++ ){
-    vector < double > w{};
-    for ( size_t i = 0; i < N; i++) {
-      w.push_back( 1 / N );
-    }
-    W.push_back(w);
+  // This is the vector w of the normalised weights
+  vector < double > w{};
+  for ( size_t j = 0; j < n; j++) {
+    w.push_back(1 / n);
   }
-
-  // This is the calculation of Y with n rows and N columns
-  for ( size_t j = 0; j < n; j++ ){
-    for ( size_t i = 1; i < N; i++ ){
-      normal_distribution < double > normalDist( phi * temp_y[i - 1], sigmasq );
-      y.push_back( normalDist ( generator ) );
-    }
-    Y.push_back(y);
-    y.clear();
-  }
-  
-   // Putting back the vector temp_y as first column for Y
-  for ( size_t i = 0; i < n; i++ ){
-    Y[i].insert( Y[i].begin(), temp_y[i]);
-  }
-  
-  // Sampling from a geometric distribution with p = 0.4
-  // find t_(i_j) for particle j (time of the next observation of the event that happened at time i).
-  // If t_(i_j) > N - i multiply y_i by (1 - p)^(N - i) and find the new y_i in the vectors Y_j.
-  // Else multiply y_i by p(1 - p)^(t_i - 1) and find the new y_i
-  // and in the vector S_(i_j) in position k_i = i + t_i, substitute the existing value with a 1.
-  for ( size_t i = 0; i < N; i++ ){
-    for ( size_t j = 0; j < n; j++ ){
-      geometric_distribution <> geoDist(p);
-      size_t ti = geoDist ( generator );
-      double pow1;
-      double pow2;
-      if ( ti >= N - i ){
-	if ( (N - i) == 0){
-	  pow1 = 1;
-	}
-	else if ( (N - i) == 1){
-	  pow1 = (1 - p);
-	}
-	else {
-	  pow1 = pow ( (1 - p), (N - i) );
-	}
-	Y[j][i] = Y[j][i] * pow1;
-      }
-      else {
-	if ( ti == 0 ){
-	  pow2 = 1;
-	    }
-	else if ( ti == 1 ){
-	  pow2 =(1 - p);
-	}
-	else {
-	  pow2 = pow ( (1 - p), (ti - 1) );
-	}
-	Y[j][i] = Y[j][i] * p * pow2;
-	size_t ki = ti + i;
-	S[j][ki] = 1;
-      }
-    }
-  }
+  W.push_back(w);
+  w.clear();
 
   // Create a vector L with the first column of Z
   // These are the observations in real life
   vector < size_t > L;
-  for ( size_t i = 0; i < z.size(); i++ ){
+  for ( size_t i = 0; i < Z.size(); i++ ){
     L.push_back(Z[i][0]);
   }
-  for (size_t i = 0; i < z.size(); i++){
+  
+  for ( size_t i = 0; i < n; i++ ){
+    cout << y[i] << endl;
   }
+    
+  
+  // Sampling from a geometric distribution with p = 0.4
+  // find t_(i_j) for particle j (time of the next observation of the event that happened at time i).
+  // If t_(i_j) > N - i multiply y_i by (1 - p) and find the new y_i in the vectors Y_j.
+  // Else multiply y_i by p(1 - p) and find the new y_i.
+  // and in the vector S_(i_j) in position k_i = i + t_i, substitute the existing value with a 1.
+
+  vector < vector < size_t > > matrix_ki{}; 
+  for ( size_t i = 1; i < N; i++ ){
+    vector < double > temp_y{};
+    vector < size_t > vec_ki{};
+ 
+    for ( size_t j = 0; j < n; j++ ){
+      normal_distribution < double > normalDist( phi * y[i - 1], sigmasq );
+      temp_y.push_back( normalDist ( generator ) );
+      geometric_distribution < size_t > geoDist(p);
+      size_t ti = geoDist ( generator );
+      cout << " ti " << ti << endl;
+
+      if ( ti >= N - i ){
+	temp_y[j] = temp_y[j] * (1 - p);
+	vec_ki.clear();
+      }
+
+      else {
+	temp_y[j] = temp_y[j] * p * (1 - p);
+      size_t ki{};
+      ki = ti + i;;
+      cout << " ki " << ki << endl;
+      vec_ki.push_back(ki);
+      }
+    }
+
+    matrix_ki.push_back(vec_ki);
+    sample.push_back(temp_y);
+    new_sample.push_back(temp_y);
+    y.clear();
+    y = temp_y;
+
+    // Make substitiution
+    for ( size_t j = 0; j < n; j++){
+      bool contains_value {false};
+      for ( size_t k = 0; k < L.size(); k++){
+	if ( L[k] == i ){
+	  contains_value = true;
+    	  break;
+   	}
+      }
+      if (contains_value == true ){
+    	new_sample[i][j] = X[i];
+      }
+    }
+  } 
+  
+  print_matrix_double(sample);
+  cout << " new sample " << endl;
+  print_matrix_double(new_sample);
+  cout << " matrix Ki " << endl;
+  print_matrix_sizet(matrix_ki);
+
 
   /* If i for vector L is 0 and the element S[j][i] is 1 
      (no observation in either real life or simulation) 
@@ -261,7 +271,7 @@ int main(){
   /* If i for vector L is 1 and the element S[j][i] is 1
      (observation in real life and in the simulation) 
      the importance weights will be w_(i_j) = w_[(i - 1)_j]*/
-  
+  /*
   for ( size_t i = 1; i < N; i++ ){
     vector < double > w{};
     
@@ -317,21 +327,6 @@ int main(){
   }
 
 
-  // Make substitiution
-  for ( size_t i = 1; i < N; i++ ){
-    for ( size_t j = 0; j < n; j++){
-      bool contains_value {false};
-      for ( size_t k = 0; k < L.size(); k++){
-	if ( L[k] == i ){
-	  contains_value = true;
-	  break;
-	}
-      }
-      if (contains_value == true ){
-	Y[j][i] = X[i];
-      }
-    }
-  }
 
   // normalise the importance weights and put it in matrix W
   for ( size_t i = 1; i < N; i++ ){
@@ -362,14 +357,22 @@ int main(){
 
   // Create a dat file with the values of E, this is useful to graph with gnuplot
     std::ofstream outFile2( "./vector_E.dat" );
-  outFile2 << "values of E" << endl;
+  outFile2 << endl;
   for ( double n : E ){
     outFile2 << n << endl;
   }
   outFile2.close();
- 
+
+
+  for ( size_t i = 0; i < N; i++ ){
+    cout << E[i] << endl;
+  }
+
+  */
+  
   return 0;
 }
+
 
 
 
