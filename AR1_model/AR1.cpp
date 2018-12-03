@@ -27,6 +27,8 @@ vector < double > X{};
 
 void print_matrix_sizet( vector < vector < size_t > > m );
 void print_matrix_double( vector < vector < double > > M );
+void transpose( vector < vector < size_t > > &b );
+
 
 random_device rd;
 mt19937 generator( rd () );
@@ -36,7 +38,7 @@ int main(){
 
   // Sample from a normal distribution. Put the values in a vecotr X.
   
-   normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
+  normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
   X.push_back( normalDist ( generator ) );
   
   for ( size_t i = 1; i < N; i++ ){  
@@ -51,14 +53,15 @@ int main(){
     outFile << n << endl;
   }
   outFile.close();
-   
-  vector < size_t > vector_ti{};
-  vector < size_t > vector_Ki{};
-  vector < size_t > vector_i{};
-  vector < vector < size_t > > r{};
+  
 
+  vector < vector < size_t > > r{};
+  
   // Sample from a geometric distribution the values ti
-    for ( size_t i = 0; i < N; i++ ){
+  for ( size_t i = 0; i < N; i++ ){
+    vector < size_t > vector_ti{};
+    vector < size_t > vector_Ki{};
+    vector < size_t > vector_i{};
     geometric_distribution <> geoDist(p);
     size_t ti = geoDist ( generator );
     vector_ti.push_back(ti);
@@ -80,7 +83,7 @@ int main(){
   // If two lines of the matrix r have the same ki (first element)
   // add the second element of the second vector to the first vector
   // and set the second vector to be all made of 0
-    for ( size_t i = 0; i < r.size(); i++ ){
+  for ( size_t i = 0; i < r.size(); i++ ){
     for ( size_t j = i + 1 ; j < r.size(); j++ ){
       if ( r[j][0] == r[i][0] ){
 	r[i].push_back( r[j][1] );
@@ -89,33 +92,33 @@ int main(){
       }
     }
   }
-
-    // Delete all zeroes from r and call it R
-    vector < vector < size_t > > R{};
-    for ( size_t i = 0; i < r.size(); i++ ){
-      if ( r[i][0] != 0 ){
-	R.push_back( r[i] );
-      }
+  
+  // Delete all zeroes from r and call it R
+  vector < vector < size_t > > R{};
+  for ( size_t i = 0; i < r.size(); i++ ){
+    if ( r[i][0] != 0 ){
+      R.push_back( r[i] );
     }
-
+  }
+  
   // Sort the matrix R by the first column
-    sort( R.begin(), R.end() );
-
-   // Create a matrix z stacking all the times of observations up to time ki
+  sort( R.begin(), R.end() );
+  
+  // Create a matrix z stacking all the times of observations up to time ki
   // (specified in the fisrt column). The times are also sorted.
-    vector < vector < size_t > > z{};
-    vector < size_t > temp_vector{};
-    for ( size_t i = 0; i < R.size(); i++ ){
-      for ( size_t j = 1; j < R[i].size(); j++ ){
-	temp_vector.push_back( R[i][j] );
-	sort( temp_vector.begin(), temp_vector.end() );
-      }
-      z.push_back( temp_vector);
+  vector < vector < size_t > > z{};
+  vector < size_t > temp_vector{};
+  for ( size_t i = 0; i < R.size(); i++ ){
+    for ( size_t j = 1; j < R[i].size(); j++ ){
+      temp_vector.push_back( R[i][j] );
+      sort( temp_vector.begin(), temp_vector.end() );
     }
-    for ( size_t i = 0; i < R.size(); i++ ){
-      z[i].insert(z[i].begin(), R[i][0]);
-    }
-
+    z.push_back( temp_vector);
+  }
+  for ( size_t i = 0; i < R.size(); i++ ){
+    z[i].insert(z[i].begin(), R[i][0]);
+  }
+  
   // Create a matrix Z stacking all the values of the observations up to time ki
   vector < vector < double > > Z{};
   for ( size_t i = 0; i < z.size(); i++ ){
@@ -129,12 +132,12 @@ int main(){
   for ( size_t i = 0; i < z.size(); i++ ){
     Z[i].insert( Z[i].begin(), z[i][0] );
   }
-
+  
   /* this is the code for the method
      i here is the index for the current time that goes from 1 to N, 
      j is the index for the particles that goes from 1 to n. I choose n to be 10 */
-
-  vector < vector < size_t > > S{};
+  
+  
   vector < vector < double > > sample{};
   vector < vector < double > > new_sample{};
   vector < vector < double > > V{};
@@ -145,22 +148,15 @@ int main(){
   // The columns are indexd as j and are for  the particles (n)
   // The rows are indexed as i and are for the number of events (N)
   // It is a matrix of 0s (observation) and 1s (no observation)
-  /*   for ( size_t i = 0; i < N; i++ ){
-    vector < size_t > s{};
-    for ( size_t j = 0; j < n; j++ ){
-      s.push_back(0);
-    }
-    S.push_back(s);
-  }
-
-    print_matrix_sizet(S); */
 
   // This is the calculations matrix Y of the simulated events.
   // In the first raw of the matrix we have the values for f(x_1) for all the j particles
 
-  // Creating a vector y simulating from a normal distribution with mean 0 and variance sigma^2/(1-phi^2)
+  // Creating a vector y simulating from a normal distribution with mean 0
+  // and variance sigma^2/(1-phi^2)
   // This vector will be used as a starting point to simulate all other n vectors y of lenght n
   // that will populate the matrix Y
+  
   vector < double > y{};
   for ( unsigned j = 0; j < n; j++){
     normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
@@ -184,7 +180,7 @@ int main(){
   }
   W.push_back(w);
   w.clear();
-
+  
   // Create a vector L with the first column of Z
   // These are the observations in real life
   vector < size_t > L;
@@ -198,15 +194,19 @@ int main(){
     
   
   // Sampling from a geometric distribution with p = 0.4
-  // find t_(i_j) for particle j (time of the next observation of the event that happened at time i).
+  // find t_(i_j) for particle j
+  // (time of the next observation of the event that happened at time i).
   // If t_(i_j) > N - i multiply y_i by (1 - p) and find the new y_i in the vectors Y_j.
   // Else multiply y_i by p(1 - p) and find the new y_i.
   // and in the vector S_(i_j) in position k_i = i + t_i, substitute the existing value with a 1.
 
-  vector < vector < size_t > > matrix_ki{}; 
+ 
+  vector < vector < size_t > > matrix_ti{};
+  //size_t ki(n);
   for ( size_t i = 1; i < N; i++ ){
+    vector < size_t > vector_ti{};
+    vector < size_t > vector_i{};
     vector < double > temp_y{};
-    vector < size_t > vec_ki{};
  
     for ( size_t j = 0; j < n; j++ ){
       normal_distribution < double > normalDist( phi * y[i - 1], sigmasq );
@@ -217,19 +217,16 @@ int main(){
 
       if ( ti >= N - i ){
 	temp_y[j] = temp_y[j] * (1 - p);
-	vec_ki.clear();
       }
 
       else {
 	temp_y[j] = temp_y[j] * p * (1 - p);
-      size_t ki{};
-      ki = ti + i;;
-      cout << " ki " << ki << endl;
-      vec_ki.push_back(ki);
       }
-    }
+    vector_ti.push_back(ti);
 
-    matrix_ki.push_back(vec_ki);
+    }
+    
+    matrix_ti.push_back(vector_ti);
     sample.push_back(temp_y);
     new_sample.push_back(temp_y);
     y.clear();
@@ -248,13 +245,44 @@ int main(){
     	new_sample[i][j] = X[i];
       }
     }
-  } 
+  }
   
-  print_matrix_double(sample);
-  cout << " new sample " << endl;
-  print_matrix_double(new_sample);
-  cout << " matrix Ki " << endl;
-  print_matrix_sizet(matrix_ki);
+  vector < vector < size_t > > S (n, vector < size_t > (N - 1) );
+  
+  cout << " matrix ti " << endl;
+  print_matrix_sizet(matrix_ti);
+  transpose(matrix_ti);
+  cout << " matrix ti transposed " << endl;
+  print_matrix_sizet(matrix_ti);
+  for ( size_t i = 0; i < matrix_ti.size(); i++ ){
+    for ( size_t j = 0; j < matrix_ti[i].size(); j++ ){
+      if ( matrix_ti[i][j] + j >= matrix_ti[i].size() ){
+	cout << matrix_ti[i][j] << endl;}
+      else if ( matrix_ti[i][j] == 0 ){}
+      else {
+	cout << matrix_ti[i][j] << endl;
+	S[i][ j + matrix_ti[i][j] ] = 1;
+      }
+    }
+  }
+  
+  
+  print_matrix_sizet(S);
+  transpose(S);
+  
+
+  /*vector < vector < size_t > > col_matrix_S{};
+  //for ( size_t j = 0; j < n; j++ ){
+  for ( size_t i = 0; i < N - 1; i++ ){
+    //col_S[ i + col_ki[ i ] - 1 ] = 1;
+
+    cout << col_ti[ i ] << endl;
+  }
+    // col_matrix_S.push_back(col_S);
+    // }*/
+  
+  cout << " matrix transposed S " << endl;
+  print_matrix_sizet(S);
 
 
   /* If i for vector L is 0 and the element S[j][i] is 1 
@@ -394,6 +422,17 @@ void print_matrix_double( vector < vector < double > > M ){
   }
 }
 
+void transpose( vector < vector < size_t > > &b ){
+  if (b.size() == 0 )
+    return;
+  vector < vector < size_t > > trans_vec(b[0].size(), vector < size_t > () );
+  for ( size_t i = 0; i < b.size(); i++ ){ 
+    for ( size_t j = 0; j < b[i].size(); j++ ){
+      trans_vec[j].push_back(b[i][j]);
+    }
+  }
+  b = trans_vec;
+}
 
 
 
