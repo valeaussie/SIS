@@ -22,12 +22,14 @@ phi = 0.5, p = 0.4, I also choose the value of N = 1000
 const int sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.4;
-const double N = 5;
+const double N = 10;
 vector < double > X{};
+vector < vector < double > > Obs{};
 
 void print_matrix_sizet( vector < vector < size_t > > m );
 void print_matrix_double( vector < vector < double > > M );
 void transpose( vector < vector < size_t > > &b );
+void print_vector( vector < double > v);
 
 
 random_device rd;
@@ -44,94 +46,58 @@ int main(){
   for ( size_t i = 1; i < N; i++ ){  
     normal_distribution < double > normalDist( phi * X[i - 1], sigmasq );
     X.push_back( normalDist ( generator ) );
-  }
-  
-  // Create a dat file with the values of X, this is useful to graph with gnuplot
-  std::ofstream outFile( "./vector_X.dat" );
-  outFile  << endl;
-  for ( double n : X ){
-    outFile << n << endl;
-  }
-  outFile.close();
-  
+  }  
 
-  vector < vector < size_t > > r{};
-  
   // Sample from a geometric distribution the values ti
+  // and create a vector of 0s and 1s called vector_Ki.
+  // We will have a 0 when ti >= N - i and 1 otherwise
+  vector < double > vector_ti;
+  vector < size_t > vector_Ki{};
   for ( size_t i = 0; i < N; i++ ){
-    vector < size_t > vector_ti{};
-    vector < size_t > vector_Ki{};
-    vector < size_t > vector_i{};
     geometric_distribution <> geoDist(p);
     size_t ti = geoDist ( generator );
     vector_ti.push_back(ti);
-    // Find Ki as ti + i.
-    //Create the RKi vectors and put Ki as first value then i.
-    //Store all this vectors in a vector of vectors (matrix) r
-    if ( ti >= N - i ){}
+    if ( ti >= N - i ){
+      vector_Ki.push_back(0);
+    }
     else {
-      size_t ki = i + ti;
-      vector_i.push_back(i);
-      vector_Ki.push_back(ki);
-      vector < size_t > Rki;
-      Rki.push_back(ki);
-      Rki.push_back(i);
-      r.push_back(Rki);
+      vector_Ki.push_back(1);
     }
   }
+  vector_Ki[0] = 0;
+
   
-  // If two lines of the matrix r have the same ki (first element)
-  // add the second element of the second vector to the first vector
-  // and set the second vector to be all made of 0
-  for ( size_t i = 0; i < r.size(); i++ ){
-    for ( size_t j = i + 1 ; j < r.size(); j++ ){
-      if ( r[j][0] == r[i][0] ){
-	r[i].push_back( r[j][1] );
-	r[j][0] = 0;
-	r[j][1] = 0;
+  
+  // Populate the matrix of observations callled Obs
+ 
+  for ( size_t j = 0; j < N + 1; j++ ){
+    vector < double > tempvec{};
+    for ( size_t i = 0; i < j; i++ ){
+      if ( vector_ti[i] <= j - i - 1 ){
+	tempvec.push_back( X[i]);
+      }
+      else  {
+	tempvec.push_back(0);
       }
     }
+    Obs.push_back( tempvec );
   }
   
-  // Delete all zeroes from r and call it R
-  vector < vector < size_t > > R{};
-  for ( size_t i = 0; i < r.size(); i++ ){
-    if ( r[i][0] != 0 ){
-      R.push_back( r[i] );
-    }
-  }
+  cout << " vector x \n ";
+  print_vector(X);
+  cout << " vector ti \n ";
+  print_vector(vector_ti);
+  cout << " matrix Obs \n ";
+  print_matrix_double(Obs);
   
-  // Sort the matrix R by the first column
-  sort( R.begin(), R.end() );
-  
-  // Create a matrix z stacking all the times of observations up to time ki
-  // (specified in the fisrt column). The times are also sorted.
-  vector < vector < size_t > > z{};
-  vector < size_t > temp_vector{};
-  for ( size_t i = 0; i < R.size(); i++ ){
-    for ( size_t j = 1; j < R[i].size(); j++ ){
-      temp_vector.push_back( R[i][j] );
-      sort( temp_vector.begin(), temp_vector.end() );
-    }
-    z.push_back( temp_vector);
-  }
-  for ( size_t i = 0; i < R.size(); i++ ){
-    z[i].insert(z[i].begin(), R[i][0]);
-  }
-  
-  // Create a matrix Z stacking all the values of the observations up to time ki
-  vector < vector < double > > Z{};
-  for ( size_t i = 0; i < z.size(); i++ ){
-    vector < double > temp_vect_double{};
-    for ( size_t j = 1; j < z[i].size(); j++ ){
-      temp_vect_double.push_back( X[ ( z[i][j] ) ] );
-    }
-    Z.push_back( temp_vect_double );
-    temp_vect_double.clear();
-  }
-  for ( size_t i = 0; i < z.size(); i++ ){
-    Z[i].insert( Z[i].begin(), z[i][0] );
-  }
+
+  // Create a dat file with the values of X, this is useful to graph with gnuplot
+  //std::ofstream outFile( "./vector_Obs.dat" );
+  //outFile  << endl;
+  //for ( double n : X ){
+  //  outFile << n << endl;
+  //}
+  //outFile.close();
   
   /* this is the code for the method
      i here is the index for the current time that goes from 1 to N, 
@@ -143,12 +109,7 @@ int main(){
   vector < vector < double > > V{};
   vector < vector < double > > W{};
   double n =3;
-
-  // This is the matrix S of the observations
-  // The columns are indexd as j and are for  the particles (n)
-  // The rows are indexed as i and are for the number of events (N)
-  // It is a matrix of 0s (observation) and 1s (no observation)
-
+  
   // This is the calculations matrix Y of the simulated events.
   // In the first raw of the matrix we have the values for f(x_1) for all the j particles
 
@@ -179,19 +140,7 @@ int main(){
     w.push_back(1 / n);
   }
   W.push_back(w);
-  w.clear();
-  
-  // Create a vector L with the first column of Z
-  // These are the observations in real life
-  vector < size_t > L;
-  for ( size_t i = 0; i < Z.size(); i++ ){
-    L.push_back(Z[i][0]);
-  }
-  
-  for ( size_t i = 0; i < n; i++ ){
-    cout << y[i] << endl;
-  }
-    
+  w.clear();    
   
   // Sampling from a geometric distribution with p = 0.4
   // find t_(i_j) for particle j
@@ -213,7 +162,6 @@ int main(){
       temp_y.push_back( normalDist ( generator ) );
       geometric_distribution < size_t > geoDist(p);
       size_t ti = geoDist ( generator );
-      cout << " ti " << ti << endl;
 
       if ( ti >= N - i ){
 	temp_y[j] = temp_y[j] * (1 - p);
@@ -232,10 +180,10 @@ int main(){
     y.clear();
     y = temp_y;
 
-    // Make substitiution
+    /* Make substitiution
     for ( size_t j = 0; j < n; j++){
       bool contains_value {false};
-      for ( size_t k = 0; k < L.size(); k++){
+      for ( size_t k = 0; k < Obs.size(); k++){
 	if ( L[k] == i ){
 	  contains_value = true;
     	  break;
@@ -243,46 +191,43 @@ int main(){
       }
       if (contains_value == true ){
     	new_sample[i][j] = X[i];
-      }
+	}
+	} */
     }
-  }
   
   vector < vector < size_t > > S (n, vector < size_t > (N - 1) );
-  
-  cout << " matrix ti " << endl;
-  print_matrix_sizet(matrix_ti);
+
   transpose(matrix_ti);
-  cout << " matrix ti transposed " << endl;
-  print_matrix_sizet(matrix_ti);
-  for ( size_t i = 0; i < matrix_ti.size(); i++ ){
-    for ( size_t j = 0; j < matrix_ti[i].size(); j++ ){
-      if ( matrix_ti[i][j] + j >= matrix_ti[i].size() ){
-	cout << matrix_ti[i][j] << endl;}
-      else if ( matrix_ti[i][j] == 0 ){}
-      else {
-	cout << matrix_ti[i][j] << endl;
-	S[i][ j + matrix_ti[i][j] ] = 1;
-      }
-    }
-  }
+  
+  //for ( size_t i = 0; i < matrix_ti.size(); i++ ){
+  //  for ( size_t j = 0; j < matrix_ti[i].size(); j++ ){
+  //    if ( matrix_ti[i][j] + j >= matrix_ti[i].size() ){
+  //	cout << matrix_ti[i][j] << endl;
+  //    }
+  //    else if ( matrix_ti[i][j] == 0 ){}
+  //    else {
+  //	cout << matrix_ti[i][j] << endl;
+  //	S[i][ j + matrix_ti[i][j] ] = 1;
+  //    }
+  //  }
+  //}
   
   
-  print_matrix_sizet(S);
+  //print_matrix_sizet(S);
   transpose(S);
   
 
-  /*vector < vector < size_t > > col_matrix_S{};
+  vector < vector < size_t > > col_matrix_S{};
   //for ( size_t j = 0; j < n; j++ ){
   for ( size_t i = 0; i < N - 1; i++ ){
     //col_S[ i + col_ki[ i ] - 1 ] = 1;
-
-    cout << col_ti[ i ] << endl;
+    //cout << col_ti[ i ] << endl;
   }
     // col_matrix_S.push_back(col_S);
-    // }*/
+    // }
   
-  cout << " matrix transposed S " << endl;
-  print_matrix_sizet(S);
+  //cout << " matrix transposed S " << endl;
+  //print_matrix_sizet(S);
 
 
   /* If i for vector L is 0 and the element S[j][i] is 1 
@@ -333,7 +278,6 @@ int main(){
       }
       
       else if ( ( S[j][i] == 1 ) && ( contains_value == false ) ){
-
 	// Calculate the power
 	double pow2{};
 	if ( (N - vector_ti[i] - i + 1) == 0){
@@ -353,9 +297,6 @@ int main(){
       }
     }
   }
-
-
-
   // normalise the importance weights and put it in matrix W
   for ( size_t i = 1; i < N; i++ ){
     vector < double > column_vector{};
@@ -382,7 +323,6 @@ int main(){
       sum += n;
     E.push_back( sum );
   }
-
   // Create a dat file with the values of E, this is useful to graph with gnuplot
     std::ofstream outFile2( "./vector_E.dat" );
   outFile2 << endl;
@@ -390,12 +330,9 @@ int main(){
     outFile2 << n << endl;
   }
   outFile2.close();
-
-
   for ( size_t i = 0; i < N; i++ ){
     cout << E[i] << endl;
   }
-
   */
   
   return 0;
@@ -422,6 +359,7 @@ void print_matrix_double( vector < vector < double > > M ){
   }
 }
 
+// this function transpose a matrix
 void transpose( vector < vector < size_t > > &b ){
   if (b.size() == 0 )
     return;
@@ -434,7 +372,10 @@ void transpose( vector < vector < size_t > > &b ){
   b = trans_vec;
 }
 
-
-
-
-
+// this function prints a vector
+void print_vector( vector < double > v){
+  for ( size_t i = 0; i < v.size(); i++){
+    cout << v[i] << ' ';
+  }
+  cout << " \n ";
+}
