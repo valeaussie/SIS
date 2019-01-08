@@ -49,23 +49,13 @@ int main(){
   }  
 
   // Sample from a geometric distribution the values ti
-  // and create a vector of 0s and 1s called vector_Ki.
-  // We will have a 0 when ti >= N - i and 1 otherwise
+  // and create a vector called vector_ti.
   vector < double > vector_ti;
-  vector < size_t > vector_Ki{};
   for ( size_t i = 0; i < N; i++ ){
     geometric_distribution <> geoDist(p);
     size_t ti = geoDist ( generator );
     vector_ti.push_back(ti);
-    if ( ti >= N - i ){
-      vector_Ki.push_back(0);
-    }
-    else {
-      vector_Ki.push_back(1);
-    }
   }
-  vector_Ki[0] = 0;
-
   
   
   // Populate the matrix of observations callled Obs
@@ -83,64 +73,58 @@ int main(){
     Obs.push_back( tempvec );
   }
   
-  cout << " vector x \n ";
+  cout << "vector x \n";
   print_vector(X);
-  cout << " vector ti \n ";
+  cout << "vector ti \n";
   print_vector(vector_ti);
-  cout << " matrix Obs \n ";
-  print_matrix_double(Obs);
-  
+  cout << "matrix Obs \n";
+  print_matrix_double(Obs);  
 
-  // Create a dat file with the values of X, this is useful to graph with gnuplot
-  //std::ofstream outFile( "./vector_Obs.dat" );
-  //outFile  << endl;
-  //for ( double n : X ){
-  //  outFile << n << endl;
-  //}
-  //outFile.close();
   
   /* this is the code for the method
      i here is the index for the current time that goes from 1 to N, 
      j is the index for the particles that goes from 1 to n. I choose n to be 10 */
   
   
-  vector < vector < double > > sample{};
-  vector < vector < double > > new_sample{};
-  vector < vector < double > > V{};
-  vector < vector < double > > W{};
+  vector < vector < vector < double > > > sample{};
+  vector < vector < vector < double > > > new_sample{};
+  // vector < vector < double > > V{};
+  // vector < vector < double > > W{};
   double n =3;
   
-  // This is the calculations matrix Y of the simulated events.
+  // This is the calculations 3 dimensional vector called sample that will store the new samples
+  // for every particle.
   // In the first raw of the matrix we have the values for f(x_1) for all the j particles
 
-  // Creating a vector y simulating from a normal distribution with mean 0
+  // We will sample from a normal distribution with mean 0
   // and variance sigma^2/(1-phi^2)
+  // and store this in a vector y
   // This vector will be used as a starting point to simulate all other n vectors y of lenght n
   // that will populate the matrix Y
   
-  vector < double > y{};
+  vector < double > vector_y{};
   for ( unsigned j = 0; j < n; j++){
     normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
-    y.push_back( normalDist ( generator ) );
+    vector_y.push_back( normalDist ( generator ) );
   }
-  sample.push_back(y);
-  new_sample.push_back(y);
+  //sample.push_back(y);
+  //new_sample.push_back(y);
 
   // This is the vector v of the unnormalised weights
-  vector < double > v{};
-  for ( size_t j = 0; j < n; j++) {
-    v.push_back(0);
-  }
-  V.push_back(v);
-  v.clear();
+  //  vector < double > v{};
+  // for ( size_t j = 0; j < n; j++) {
+  //  v.push_back(0);
+  // }
+  // V.push_back(v);
+  //v.clear();
 
   // This is the vector w of the normalised weights
-  vector < double > w{};
-  for ( size_t j = 0; j < n; j++) {
-    w.push_back(1 / n);
-  }
-  W.push_back(w);
-  w.clear();    
+  //vector < double > w{};
+  //for ( size_t j = 0; j < n; j++) {
+  //  w.push_back(1 / n);
+  // }
+  //W.push_back(w);
+  //w.clear();    
   
   // Sampling from a geometric distribution with p = 0.4
   // find t_(i_j) for particle j
@@ -149,36 +133,44 @@ int main(){
   // Else multiply y_i by p(1 - p) and find the new y_i.
   // and in the vector S_(i_j) in position k_i = i + t_i, substitute the existing value with a 1.
 
- 
-  vector < vector < size_t > > matrix_ti{};
-  //size_t ki(n);
-  for ( size_t i = 1; i < N; i++ ){
-    vector < size_t > vector_ti{};
-    vector < size_t > vector_i{};
-    vector < double > temp_y{};
- 
-    for ( size_t j = 0; j < n; j++ ){
-      normal_distribution < double > normalDist( phi * y[i - 1], sigmasq );
-      temp_y.push_back( normalDist ( generator ) );
-      geometric_distribution < size_t > geoDist(p);
-      size_t ti = geoDist ( generator );
-
-      if ( ti >= N - i ){
-	temp_y[j] = temp_y[j] * (1 - p);
+  /*for ( size_t j = 0; j < N + 1; j++ ){
+    vector < double > tempvec{};
+    for ( size_t i = 0; i < j; i++ ){
+      if ( vector_ti[i] <= j - i - 1 ){
+	tempvec.push_back( X[i]);
       }
-
-      else {
-	temp_y[j] = temp_y[j] * p * (1 - p);
+      else  {
+	tempvec.push_back(0);
       }
-    vector_ti.push_back(ti);
-
     }
-    
-    matrix_ti.push_back(vector_ti);
-    sample.push_back(temp_y);
-    new_sample.push_back(temp_y);
-    y.clear();
-    y = temp_y;
+    Obs.push_back( tempvec );
+    } */
+  
+  vector < vector < size_t > > matrix_ti{};
+  vector < vector < double > > matrix_y{};
+  for ( size_t j = 0; j < n; j++ ){
+    vector < size_t > temp_ti{};
+    vector < double > temp_y{};
+    for (size_t i = 1; i < N + 1; i++ ){
+      double y{};
+      y = vector_y[j];
+      temp_y.push_back(y);
+      normal_distribution < double > normalDist( phi * temp_y[i - 1], sigmasq );
+      temp_y.push_back( normalDist ( generator ) );
+      //geometric_distribution < size_t > geoDist(p);
+      //size_t ti = geoDist ( generator );
+      // for ( size_t k = 0; k < i; k++ ){
+      //if ( ti <= i - k - 1 ){
+      //	  temp_y[k] = temp_y[k] * (1 - p);
+      //	}
+      //else {
+      //	  temp_y[k] = temp_y[k] * p * (1 - p);
+      //}
+      //	vector_ti.push_back(ti);
+      //}
+    matrix_ti.push_back( temp_ti );
+    matrix_y.push_back( temp_y );
+    }
 
     /* Make substitiution
     for ( size_t j = 0; j < n; j++){
@@ -194,10 +186,12 @@ int main(){
 	}
 	} */
     }
-  
-  vector < vector < size_t > > S (n, vector < size_t > (N - 1) );
 
-  transpose(matrix_ti);
+  sample.push_back( matrix_y );
+  
+  // vector < vector < size_t > > S (n, vector < size_t > (N - 1) );
+
+  // transpose(matrix_ti);
   
   //for ( size_t i = 0; i < matrix_ti.size(); i++ ){
   //  for ( size_t j = 0; j < matrix_ti[i].size(); j++ ){
@@ -214,15 +208,15 @@ int main(){
   
   
   //print_matrix_sizet(S);
-  transpose(S);
+  // transpose(S);
   
 
-  vector < vector < size_t > > col_matrix_S{};
+  //vector < vector < size_t > > col_matrix_S{};
   //for ( size_t j = 0; j < n; j++ ){
-  for ( size_t i = 0; i < N - 1; i++ ){
+  //for ( size_t i = 0; i < N - 1; i++ ){
     //col_S[ i + col_ki[ i ] - 1 ] = 1;
     //cout << col_ti[ i ] << endl;
-  }
+  //}
     // col_matrix_S.push_back(col_S);
     // }
   
@@ -377,5 +371,5 @@ void print_vector( vector < double > v){
   for ( size_t i = 0; i < v.size(); i++){
     cout << v[i] << ' ';
   }
-  cout << " \n ";
+  cout << "\n";
 }
