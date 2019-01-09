@@ -22,7 +22,7 @@ phi = 0.5, p = 0.4, I also choose the value of N = 1000
 const int sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.4;
-const double N = 10;
+const double N = 5;
 vector < double > X{};
 vector < vector < double > > Obs{};
 
@@ -102,10 +102,10 @@ int main(){
   // This vector will be used as a starting point to simulate all other n vectors y of lenght n
   // that will populate the matrix Y
   
-  vector < double > vector_y{};
+  vector < double > vector_y0{};
   for ( unsigned j = 0; j < n; j++){
     normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
-    vector_y.push_back( normalDist ( generator ) );
+    vector_y0.push_back( normalDist ( generator ) );
   }
   //sample.push_back(y);
   //new_sample.push_back(y);
@@ -133,45 +133,25 @@ int main(){
   // Else multiply y_i by p(1 - p) and find the new y_i.
   // and in the vector S_(i_j) in position k_i = i + t_i, substitute the existing value with a 1.
 
-  /*for ( size_t j = 0; j < N + 1; j++ ){
-    vector < double > tempvec{};
-    for ( size_t i = 0; i < j; i++ ){
-      if ( vector_ti[i] <= j - i - 1 ){
-	tempvec.push_back( X[i]);
-      }
-      else  {
-	tempvec.push_back(0);
-      }
-    }
-    Obs.push_back( tempvec );
-    } */
   
   vector < vector < size_t > > matrix_ti{};
   vector < vector < double > > matrix_y{};
   for ( size_t j = 0; j < n; j++ ){
     vector < size_t > temp_ti{};
     vector < double > temp_y{};
+    double y{};
+    y = vector_y0[j];
+    temp_y.push_back(y);
     for (size_t i = 1; i < N + 1; i++ ){
-      double y{};
-      y = vector_y[j];
-      temp_y.push_back(y);
       normal_distribution < double > normalDist( phi * temp_y[i - 1], sigmasq );
       temp_y.push_back( normalDist ( generator ) );
-      //geometric_distribution < size_t > geoDist(p);
-      //size_t ti = geoDist ( generator );
-      // for ( size_t k = 0; k < i; k++ ){
-      //if ( ti <= i - k - 1 ){
-      //	  temp_y[k] = temp_y[k] * (1 - p);
-      //	}
-      //else {
-      //	  temp_y[k] = temp_y[k] * p * (1 - p);
-      //}
-      //	vector_ti.push_back(ti);
-      //}
+      geometric_distribution < size_t > geoDist(p);
+      size_t ti = geoDist ( generator );
+      temp_ti.push_back( ti );
+    }
+    temp_y.pop_back();
     matrix_ti.push_back( temp_ti );
     matrix_y.push_back( temp_y );
-    }
-
     /* Make substitiution
     for ( size_t j = 0; j < n; j++){
       bool contains_value {false};
@@ -186,8 +166,54 @@ int main(){
 	}
 	} */
     }
+  cout << "matrix_y \n";
+  print_matrix_double( matrix_y );
+  cout << "matrix_t \n";
+  print_matrix_sizet( matrix_ti );
+  
+  for ( size_t k = 0; k < n; k++){
+    vector < double > row_matrix_y{};
+    vector < size_t > row_matrix_ti{}; 
+    row_matrix_y = matrix_y[k];
+    row_matrix_ti = matrix_ti[k];
+    vector < vector < double > > sim_matrix{};
+    for ( size_t j = 0; j < N + 1; j++ ){
+      vector < double > tempvec{};
+      for ( size_t i = 0; i < j; i++ ){
+      	if ( row_matrix_ti[i] <= j - i - 1 ){
+	  //row_matrix_y[k] = row_matrix_y[k] * p * (1 - p);
+	  tempvec.push_back( row_matrix_y[i]);
+	}
+	else  {
+	  //row_matrix_y[i] = row_matrix_y[k] * (1 - p);
+	  tempvec.push_back(0);
+	}
+      }
+      sim_matrix.push_back( tempvec );
+    }
+    sample.push_back( sim_matrix );
+  }
 
-  sample.push_back( matrix_y );
+  vector < vector < double > > printer{};
+  printer = sample[1];
+  cout << "printing the printer \n";
+  print_matrix_double( printer );
+
+    /*for ( size_t j = 0; j < N + 1; j++ ){
+    vector < double > tempvec{};
+    for ( size_t i = 0; i < j; i++ ){
+      if ( vector_ti[i] <= j - i - 1 ){
+	tempvec.push_back( X[i]);
+      }
+      else  {
+	tempvec.push_back(0);
+      }
+    }
+    Obs.push_back( tempvec );
+    }*/
+  
+
+//sample.push_back( matrix_y );
   
   // vector < vector < size_t > > S (n, vector < size_t > (N - 1) );
 
