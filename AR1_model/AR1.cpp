@@ -8,15 +8,18 @@
 
 using namespace std;
 
-/* this is the code to sample from my model and find the vector of the observations
-I am going to generate a vector X with the x_i as elements which are found sampling 
-from the AR1 model I have specified. This will be the vector of the events.
-Then I am going to generate N, R_(k_i) vectors of the times of the events 
-that happened at time i and have been observed at time k_i.
-Finally, I will generate N, Z_(k_i) vectors of observations of events 
-that happened at time i and have been observed at time k_i.
+/* this is the code to sample from my model and find the vector of the observations.
+Sampling from the AR1 model I populate a vector X. This will be the vector of the events.
+Sampling form a geometric distribution I populate a vector "vector_ti" for the times of observations 
+for the event that happened at time i (event x_i will be observed at time t_i from when it happened).
+The matrix "Obs" will have on each row the events that have been observed up to time i
+wich is the number of the row. So at time 0 I will have 1 element in the row, 
+that might or might not have been observed,
+at time 1 I will have two elements on the row, some observed, some not, and so on
+I will have 0s whenever the element have have not been yet obeserved at the time
+corresponding to the row
 the values of the parameters at this stage are fixed and are sigma^2 = 1, 
-phi = 0.5, p = 0.4, I also choose the value of N = 1000
+phi = 0.5, p = 0.4
 */
 
 const int sigmasq = 1;
@@ -49,7 +52,7 @@ int main(){
   }  
 
   // Sample from a geometric distribution the values ti
-  // and create a vector called vector_ti.
+  // and create a vector called "vector_ti".
   vector < double > vector_ti;
   for ( size_t i = 0; i < N; i++ ){
     geometric_distribution <> geoDist(p);
@@ -58,12 +61,11 @@ int main(){
   }
   
   
-  // Populate the matrix of observations callled Obs
- 
-  for ( size_t j = 0; j < N + 1; j++ ){
+  // Populate the matrix of observations callled Obs 
+  for ( size_t j = 0; j < N; j++ ){
     vector < double > tempvec{};
-    for ( size_t i = 0; i < j; i++ ){
-      if ( vector_ti[i] <= j - i - 1 ){
+    for ( size_t i = 0; i < j + 1; i++ ){
+      if ( vector_ti[i] <= j - i ){
 	tempvec.push_back( X[i]);
       }
       else  {
@@ -79,61 +81,40 @@ int main(){
   print_vector(vector_ti);
   cout << "matrix Obs \n";
   print_matrix_double(Obs);  
-
   
   /* this is the code for the method
      i here is the index for the current time that goes from 1 to N, 
-     j is the index for the particles that goes from 1 to n. I choose n to be 10 */
-  
+     j is the index for the particles that goes from 1 to n. */
+
+  // Here I calculate the 3 dimensional vector called "sample" that will store the new samples
+  // for every particle.
+  // I also calculate the 3 dimensional vector of the times of observations
+  // Tese vectors are stacked from time zero to time N forming a matrix
+  // and on the third ax I list the particles  
   
   vector < vector < vector < double > > > sample{};
+  vector < vector < vector < size_t > > > times{};
   vector < vector < vector < double > > > new_sample{};
   // vector < vector < double > > V{};
   // vector < vector < double > > W{};
   double n =3;
-  
-  // This is the calculations 3 dimensional vector called sample that will store the new samples
-  // for every particle.
-  // In the first raw of the matrix we have the values for f(x_1) for all the j particles
 
-  // We will sample from a normal distribution with mean 0
-  // and variance sigma^2/(1-phi^2)
-  // and store this in a vector y
-  // This vector will be used as a starting point to simulate all other n vectors y of lenght n
-  // that will populate the matrix Y
+  // First I sample from a normal distribution with mean 0
+  // and variance sigma^2/(1-phi^2) for every particle
+  // and store this in a vector clalled "vector_y0"
+  // This vector will be used as the starting point to simulate all other vectors of events
+  // that will populate the matrix "sample"
   
   vector < double > vector_y0{};
   for ( unsigned j = 0; j < n; j++){
     normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
     vector_y0.push_back( normalDist ( generator ) );
   }
-  //sample.push_back(y);
-  //new_sample.push_back(y);
-
-  // This is the vector v of the unnormalised weights
-  //  vector < double > v{};
-  // for ( size_t j = 0; j < n; j++) {
-  //  v.push_back(0);
-  // }
-  // V.push_back(v);
-  //v.clear();
-
-  // This is the vector w of the normalised weights
-  //vector < double > w{};
-  //for ( size_t j = 0; j < n; j++) {
-  //  w.push_back(1 / n);
-  // }
-  //W.push_back(w);
-  //w.clear();    
   
   // Sampling from a geometric distribution with p = 0.4
-  // find t_(i_j) for particle j
-  // (time of the next observation of the event that happened at time i).
-  // If t_(i_j) > N - i multiply y_i by (1 - p) and find the new y_i in the vectors Y_j.
-  // Else multiply y_i by p(1 - p) and find the new y_i.
-  // and in the vector S_(i_j) in position k_i = i + t_i, substitute the existing value with a 1.
-
-  
+  // find the matrix_ti of the times of observations for each particle
+  // Sampling for every particle from a normal distribution centred in the previous event time phi
+  // and with variance sigma^2, I find the matrix of events "matrix_y"
   vector < vector < size_t > > matrix_ti{};
   vector < vector < double > > matrix_y{};
   for ( size_t j = 0; j < n; j++ ){
@@ -152,40 +133,28 @@ int main(){
     temp_y.pop_back();
     matrix_ti.push_back( temp_ti );
     matrix_y.push_back( temp_y );
-    /* Make substitiution
-    for ( size_t j = 0; j < n; j++){
-      bool contains_value {false};
-      for ( size_t k = 0; k < Obs.size(); k++){
-	if ( L[k] == i ){
-	  contains_value = true;
-    	  break;
-   	}
-      }
-      if (contains_value == true ){
-    	new_sample[i][j] = X[i];
-	}
-	} */
     }
+
+  // Print matrix_y and matrix_ti
   cout << "matrix_y \n";
   print_matrix_double( matrix_y );
   cout << "matrix_t \n";
   print_matrix_sizet( matrix_ti );
-  
+
+  // create the 3 dimensional vectors for observations and events  
   for ( size_t k = 0; k < n; k++){
     vector < double > row_matrix_y{};
     vector < size_t > row_matrix_ti{}; 
     row_matrix_y = matrix_y[k];
     row_matrix_ti = matrix_ti[k];
     vector < vector < double > > sim_matrix{};
-    for ( size_t j = 0; j < N + 1; j++ ){
+    for ( size_t j = 0; j < N; j++ ){
       vector < double > tempvec{};
-      for ( size_t i = 0; i < j; i++ ){
-      	if ( row_matrix_ti[i] <= j - i - 1 ){
-	  //row_matrix_y[k] = row_matrix_y[k] * p * (1 - p);
+      for ( size_t i = 0; i < j + 1; i++ ){
+      	if ( row_matrix_ti[i] <= j - i ){
 	  tempvec.push_back( row_matrix_y[i]);
 	}
-	else  {
-	  //row_matrix_y[i] = row_matrix_y[k] * (1 - p);
+	else {
 	  tempvec.push_back(0);
 	}
       }
@@ -194,60 +163,40 @@ int main(){
     sample.push_back( sim_matrix );
   }
 
-  vector < vector < double > > printer{};
-  printer = sample[1];
-  cout << "printing the printer \n";
-  print_matrix_double( printer );
+  // Print one matrix of the 3 dimensional vector "sample"
+  vector < vector < double > > printer1{};
+  printer1 = sample[1];
+  cout << "printing one of the sample matrix \n";
+  print_matrix_double( printer1 );
 
-    /*for ( size_t j = 0; j < N + 1; j++ ){
-    vector < double > tempvec{};
-    for ( size_t i = 0; i < j; i++ ){
-      if ( vector_ti[i] <= j - i - 1 ){
-	tempvec.push_back( X[i]);
+  // make the substitiution and find the 3 dimensional vector "new_sample"
+  
+  for ( size_t k = 0; k < n; k++ ){
+    vector < vector < double > > matrix_sample{};
+    matrix_sample = sample[k];
+    vector < vector < double > > new_matrix{};
+    for ( size_t i = 0; i < N; i++ ){
+      vector < double > row_matrix_sample{};
+      vector < double > row_matrix_Obs{};
+      row_matrix_sample = matrix_sample[i];
+      row_matrix_Obs = Obs[i];
+      for ( size_t j = 0; j < i + 1; j++ ){
+	if ( row_matrix_Obs[j] != 0 ){
+	  row_matrix_sample[j] = row_matrix_Obs[j];
+	}
       }
-      else  {
-	tempvec.push_back(0);
-      }
+      new_matrix.push_back( row_matrix_sample );
     }
-    Obs.push_back( tempvec );
-    }*/
-  
+    new_sample.push_back( new_matrix );
+  }
 
-//sample.push_back( matrix_y );
+  // Print one matrix the 3 dimensional vector "new_sample"
+  vector < vector < double > > printer2{};
+  printer2 = new_sample[1];
+  cout << "printing one of the new_sample matrix \n";
+  print_matrix_double( printer2 );
   
-  // vector < vector < size_t > > S (n, vector < size_t > (N - 1) );
-
-  // transpose(matrix_ti);
-  
-  //for ( size_t i = 0; i < matrix_ti.size(); i++ ){
-  //  for ( size_t j = 0; j < matrix_ti[i].size(); j++ ){
-  //    if ( matrix_ti[i][j] + j >= matrix_ti[i].size() ){
-  //	cout << matrix_ti[i][j] << endl;
-  //    }
-  //    else if ( matrix_ti[i][j] == 0 ){}
-  //    else {
-  //	cout << matrix_ti[i][j] << endl;
-  //	S[i][ j + matrix_ti[i][j] ] = 1;
-  //    }
-  //  }
-  //}
-  
-  
-  //print_matrix_sizet(S);
-  // transpose(S);
-  
-
-  //vector < vector < size_t > > col_matrix_S{};
-  //for ( size_t j = 0; j < n; j++ ){
-  //for ( size_t i = 0; i < N - 1; i++ ){
-    //col_S[ i + col_ki[ i ] - 1 ] = 1;
-    //cout << col_ti[ i ] << endl;
-  //}
-    // col_matrix_S.push_back(col_S);
-    // }
-  
-  //cout << " matrix transposed S " << endl;
-  //print_matrix_sizet(S);
+  // Find the weights
 
 
   /* If i for vector L is 0 and the element S[j][i] is 1 
@@ -377,19 +326,6 @@ void print_matrix_double( vector < vector < double > > M ){
     for  ( double x : v ) cout << x << ' ';
     cout << endl;
   }
-}
-
-// this function transpose a matrix
-void transpose( vector < vector < size_t > > &b ){
-  if (b.size() == 0 )
-    return;
-  vector < vector < size_t > > trans_vec(b[0].size(), vector < size_t > () );
-  for ( size_t i = 0; i < b.size(); i++ ){ 
-    for ( size_t j = 0; j < b[i].size(); j++ ){
-      trans_vec[j].push_back(b[i][j]);
-    }
-  }
-  b = trans_vec;
 }
 
 // this function prints a vector
