@@ -95,8 +95,10 @@ int main(){
   vector < vector < vector < double > > > sample{};
   vector < vector < vector < size_t > > > times{};
   vector < vector < vector < double > > > new_sample{};
-  // vector < vector < double > > V{};
-  // vector < vector < double > > W{};
+  //define the unnormalised weights vector
+  vector < vector < double > > V{};
+  //define the normalised weights vector
+  vector < vector < double > > W{};
   double n =3;
 
   // First I sample from a normal distribution with mean 0
@@ -104,7 +106,6 @@ int main(){
   // and store this in a vector clalled "vector_y0"
   // This vector will be used as the starting point to simulate all other vectors of events
   // that will populate the matrix "sample"
-  
   vector < double > vector_y0{};
   for ( unsigned j = 0; j < n; j++){
     normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
@@ -114,7 +115,7 @@ int main(){
   // Sampling from a geometric distribution with p = 0.4
   // find the matrix_ti of the times of observations for each particle
   // Sampling for every particle from a normal distribution centred in the previous event time phi
-  // and with variance sigma^2, I find the matrix of events "matrix_y"
+  // and with variance sigma^2, find the matrix of events "matrix_y"
   vector < vector < size_t > > matrix_ti{};
   vector < vector < double > > matrix_y{};
   for ( size_t j = 0; j < n; j++ ){
@@ -170,7 +171,6 @@ int main(){
   print_matrix_double( printer1 );
 
   // make the substitiution and find the 3 dimensional vector "new_sample"
-  
   for ( size_t k = 0; k < n; k++ ){
     vector < vector < double > > matrix_sample{};
     matrix_sample = sample[k];
@@ -196,77 +196,49 @@ int main(){
   cout << "printing one of the new_sample matrix \n";
   print_matrix_double( printer2 );
   
-  // Find the weights
-
-
-  /* If i for vector L is 0 and the element S[j][i] is 1 
-     (no observation in either real life or simulation) 
-     the importance weights will be w_(i_j) = w_[(i - 1)_j] */
-  /* If i for vector L is 1 and the element S[j][i] is 0
-     (observation in real life, no observation simulated), 
-     make the substitutions putting the elements of the vector X_(k_i) in column i of Y, 
-     then calculate the weights w_i^(j) = w_[(i - 1)_j] * (1 - p)^(t_i + i - N - 1) */
-  /* If i for vector L is 1 and the element S[j][i] is 0
-     (observation in real life, no observation simulated)
-     make the substitutions putting the elements of the vector X_(k_i) in column i of Y,
-     then calculate the weights w_(i_j) = w_[(i - 1)_j] * (1 - p)^(N - t_i - i + 1) */
-  /* If i for vector L is 1 and the element S[j][i] is 1
-     (observation in real life and in the simulation) 
-     the importance weights will be w_(i_j) = w_[(i - 1)_j]*/
-  /*
-  for ( size_t i = 1; i < N; i++ ){
-    vector < double > w{};
-    
-    bool contains_value {false};
-    for ( size_t k = 0; k < L.size(); k++){
-      if ( L[k] == i ){
-	contains_value = true;
-	break;
-      }
-    }
-    for ( size_t j = 0; j < n; j++ ){
-      if ( ( S[j][i] == 0 ) && ( contains_value == false ) ){
-	V[j][i] = V[j][i - 1];
-      }
-      
-      else if ( ( S[j][i] == 1 ) && ( contains_value == true ) ){
-	
-	// Calculate the power
-	double pow1{};
-	if ( ( vector_ti[i] + i - N - 1 ) == 0){
-	  pow1 = 1;
-	}
-	else if ( (vector_ti[i] + i - N - 1) == 1){
-	  pow1 = (1 - p);
-	}
-	else {
-	  pow1 = pow ( (1 - p), ( vector_ti[i] + i - N - 1 ) );
-	}
-	
-	V[j][i] = V[j][i - 1] * pow1 ;
-      }
-      
-      else if ( ( S[j][i] == 1 ) && ( contains_value == false ) ){
-	// Calculate the power
-	double pow2{};
-	if ( (N - vector_ti[i] - i + 1) == 0){
-	  pow2 = 1;
-	}
-	else if ( (N - vector_ti[i] - i + 1) == 1){
-	  pow2 = (1 - p);
-	}
-	else {
-	  pow2 = pow ( (1 - p), ( N - vector_ti[i] - i + 1 ) );
-	}
-	
-	V[j][i] = V[j][i - 1] * pow2 ;
-      }
-      else if ( ( S[j][i] == 0 ) && ( contains_value == true ) ){
-	V[j][i] = V[j][i - 1];
-      }
-    }
+  // Find the weights first for time 0 (for first event) for every particle
+  // and add it to the matrix of all weights "W" while adding a row of 1s to the matrix
+  // "V" of unnormalised weights
+  vector < double > w{};
+  vector < double > v{};
+  for ( size_t j = 0; j < n; j++ ){
+    w.push_back( 1 / n );
+    v.push_back( 1 );
   }
-  // normalise the importance weights and put it in matrix W
+  W.push_back( w );
+  V.push_back( v );
+  
+  for ( size_t k = 0; k < n; k++ ){
+    vector < double > vector_weights{};
+    vector < vector < double > > matrix_sample{};
+    matrix_sample = sample[k];
+    vector < vector < double > > matrix_new_sample{};
+    matrix_new_sample = new_sample[k];
+    /*for ( size_t i = 0; i < N+1; i++ ){
+      vector < double > row_sample{};
+      row_sample = matrix_sample[N];
+      vector < double > row_new_sample{};
+      row_new_sample = matrix_new_sample[N];
+      double weight{};
+      double num = (row_new_sample[i+1] - phi * row_new_sample[i]) * (row_new_sample[i+1] - phi * row_new_sample[i]);
+      double den = (row_sample[i+1] - phi * row_sample[i]) * (row_sample[i+1] - phi * row_sample[i]);
+      double con = - ( 1 / 2 * sigmasq );
+      if ( row_sample[i+1] == row_new_sample[i+1] ){
+	weight = 1;
+      }
+      else if ( row_new_sample[i+1] != 0 && row_sample[0] == 0 ){
+	weight = ( exp (con * num) * p ) / ( exp (con * den) * (1 - p));
+      }
+      else if ( row_new_sample[i+1] == 0 && row_sample[i+1] != 0 ){
+	weight = ( exp (con * num) * (1 - p)) / ( exp (con * den) * p);
+      }
+      vector_weights.push_back(weight);
+      } */
+    V.push_back(vector_weights);
+  }
+
+  
+  /*  // normalise the importance weights and put it in matrix W
   for ( size_t i = 1; i < N; i++ ){
     vector < double > column_vector{};
     double sum{};
