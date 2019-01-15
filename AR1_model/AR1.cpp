@@ -31,7 +31,6 @@ vector < vector < double > > Obs{};
 
 void print_matrix_sizet( vector < vector < size_t > > m );
 void print_matrix_double( vector < vector < double > > M );
-void transpose( vector < vector < size_t > > &b );
 void print_vector( vector < double > v);
 
 
@@ -116,25 +115,30 @@ int main(){
   // find the matrix_ti of the times of observations for each particle
   // Sampling for every particle from a normal distribution centred in the previous event time phi
   // and with variance sigma^2, find the matrix of events "matrix_y"
-  vector < vector < size_t > > matrix_ti{};
+  
   vector < vector < double > > matrix_y{};
   for ( size_t j = 0; j < n; j++ ){
-    vector < size_t > temp_ti{};
     vector < double > temp_y{};
     double y{};
     y = vector_y0[j];
     temp_y.push_back(y);
-    for (size_t i = 1; i < N + 1; i++ ){
+    for (size_t i = 1; i < N; i++ ){
       normal_distribution < double > normalDist( phi * temp_y[i - 1], sigmasq );
       temp_y.push_back( normalDist ( generator ) );
+    }
+    matrix_y.push_back( temp_y );
+  }
+     
+  vector < vector < size_t > > matrix_ti{};
+  for ( size_t j = 0; j < n; j++ ){
+    vector < size_t > temp_ti{}; 
+    for (size_t i = 0; i < N; i++ ){ 
       geometric_distribution < size_t > geoDist(p);
       size_t ti = geoDist ( generator );
       temp_ti.push_back( ti );
     }
-    temp_y.pop_back();
     matrix_ti.push_back( temp_ti );
-    matrix_y.push_back( temp_y );
-    }
+  }
 
   // Print matrix_y and matrix_ti
   cout << "matrix_y \n";
@@ -166,7 +170,7 @@ int main(){
 
   // Print one matrix of the 3 dimensional vector "sample"
   vector < vector < double > > printer1{};
-  printer1 = sample[1];
+  printer1 = sample[0];
   cout << "printing one of the sample matrix \n";
   print_matrix_double( printer1 );
 
@@ -192,7 +196,7 @@ int main(){
 
   // Print one matrix the 3 dimensional vector "new_sample"
   vector < vector < double > > printer2{};
-  printer2 = new_sample[1];
+  printer2 = new_sample[0];
   cout << "printing one of the new_sample matrix \n";
   print_matrix_double( printer2 );
   
@@ -214,31 +218,33 @@ int main(){
     matrix_sample = sample[k];
     vector < vector < double > > matrix_new_sample{};
     matrix_new_sample = new_sample[k];
-    /*for ( size_t i = 0; i < N+1; i++ ){
+    for ( size_t i = 0; i < N; i++ ){
       vector < double > row_sample{};
-      row_sample = matrix_sample[N];
+      row_sample = matrix_sample[N - 1];
       vector < double > row_new_sample{};
-      row_new_sample = matrix_new_sample[N];
+      row_new_sample = matrix_new_sample[N - 1];
       double weight{};
       double num = (row_new_sample[i+1] - phi * row_new_sample[i]) * (row_new_sample[i+1] - phi * row_new_sample[i]);
       double den = (row_sample[i+1] - phi * row_sample[i]) * (row_sample[i+1] - phi * row_sample[i]);
-      double con = - ( 1 / 2 * sigmasq );
-      if ( row_sample[i+1] == row_new_sample[i+1] ){
+      double con = - ( 1 / ( 2 * sigmasq ) );
+      if ( row_sample[i] == row_new_sample[i] ){
 	weight = 1;
       }
-      else if ( row_new_sample[i+1] != 0 && row_sample[0] == 0 ){
-	weight = ( exp (con * num) * p ) / ( exp (con * den) * (1 - p));
+      else if ( row_new_sample[i] != 0 && row_sample[i] == 0 ){
+	weight = ( (exp (con * num)) * p ) / ( (exp (con * den)) * (1 - p));
       }
-      else if ( row_new_sample[i+1] == 0 && row_sample[i+1] != 0 ){
-	weight = ( exp (con * num) * (1 - p)) / ( exp (con * den) * p);
-      }
+      else if ( row_new_sample[i] == 0 && row_sample[i] != 0 ){
+	weight = ( (exp (con * num)) * (1 - p)) / ( (exp (con * den)) * p);
+	}
       vector_weights.push_back(weight);
-      } */
+      }
     V.push_back(vector_weights);
   }
 
+  print_matrix_double(V);
+
   
-  /*  // normalise the importance weights and put it in matrix W
+  /* // normalise the importance weights and put it in matrix W
   for ( size_t i = 1; i < N; i++ ){
     vector < double > column_vector{};
     double sum{};
@@ -250,9 +256,9 @@ int main(){
     for ( size_t j = 0; j < n; j++ ){
     W[j][i] = V[j][i] / sum;
     }
-  }
+    } */
   
-  // calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j)
+  /* // calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j)
   vector < double > E{};
   for ( size_t i = 0; i < N; i++ ){
     vector < double > moltiplication_vector{};
