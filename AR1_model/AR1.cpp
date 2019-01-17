@@ -22,7 +22,7 @@ the values of the parameters at this stage are fixed and are sigma^2 = 1,
 phi = 0.5, p = 0.4
 */
 
-const int sigmasq = 1;
+const double sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.4;
 const double N = 5;
@@ -200,52 +200,79 @@ int main(){
   cout << "printing one of the new_sample matrix \n";
   print_matrix_double( printer2 );
   
-  // Find the weights first for time 0 (for first event) for every particle
-  // and add it to the matrix of all weights "W" while adding a row of 1s to the matrix
-  // "V" of unnormalised weights
-  vector < double > w{};
-  vector < double > v{};
-  for ( size_t j = 0; j < n; j++ ){
-    w.push_back( 1 / n );
-    v.push_back( 1 );
+  // find the vector Y of new sample for all the times
+  vector < vector < double > > Y{};
+  vector <vector < double > > temp_matrix{};
+  for ( size_t i = 0; i < n; i++ ){
+      temp_matrix = new_sample[i];
+      vector < double > temp_vector;
+      for ( size_t j = 0; j < N; j++ ){
+         temp_vector = temp_matrix[N-1];
+      }
+      Y.push_back(temp_vector);
   }
-  W.push_back( w );
-  V.push_back( v );
+  
+  
+  // Creating a matrix "W" of zeroes for the normalised weights
+  // and add the first element for each particle = 1/n 
+  
+  
+  vector < double > w{};
+  for ( size_t j = 0; j < n; j++ ){
+      double elem{};
+   for ( size_t i = 0; i < N; i++ ){
+    elem = 0;  
+   w.push_back(elem);
+   }   
+   W.push_back(w);
+   w.clear();
+  }
+
+  for ( size_t j = 0; j < n; j++ ){
+  W[j][0] =  1 / n;
+  }
+  
+  //Finding the unnormalised weights
   
   for ( size_t k = 0; k < n; k++ ){
-    vector < double > vector_weights{};
     vector < vector < double > > matrix_sample{};
     matrix_sample = sample[k];
     vector < vector < double > > matrix_new_sample{};
     matrix_new_sample = new_sample[k];
-    for ( size_t i = 0; i < N; i++ ){
+    double weight(1);
+    vector < double > vector_weights{};
+    vector_weights.push_back(1);
+    print_vector(vector_weights);
+    for ( size_t i = 0; i < N-1; i++ ){
       vector < double > row_sample{};
       row_sample = matrix_sample[N - 1];
       vector < double > row_new_sample{};
       row_new_sample = matrix_new_sample[N - 1];
-      double weight{};
       double num = (row_new_sample[i+1] - phi * row_new_sample[i]) * (row_new_sample[i+1] - phi * row_new_sample[i]);
       double den = (row_sample[i+1] - phi * row_sample[i]) * (row_sample[i+1] - phi * row_sample[i]);
       double con = - ( 1 / ( 2 * sigmasq ) );
       if ( row_sample[i] == row_new_sample[i] ){
-	weight = 1;
+	weight = weight * 1;
       }
       else if ( row_new_sample[i] != 0 && row_sample[i] == 0 ){
-	weight = ( (exp (con * num)) * p ) / ( (exp (con * den)) * (1 - p));
+	weight = weight * ( (exp (con * num)) * p ) / ( (exp (con * den)) * (1 - p));
       }
       else if ( row_new_sample[i] == 0 && row_sample[i] != 0 ){
-	weight = ( (exp (con * num)) * (1 - p)) / ( (exp (con * den)) * p);
+	weight = weight * ( (exp (con * num)) * (1 - p)) / ( (exp (con * den)) * p);
+	}
+	  else {
+	weight = weight * ( (exp (con * num)) ) / ( (exp (con * den)) );
 	}
       vector_weights.push_back(weight);
       }
     V.push_back(vector_weights);
   }
-
+  cout << "printing matrix V" << endl;
   print_matrix_double(V);
 
   
-  /* // normalise the importance weights and put it in matrix W
-  for ( size_t i = 1; i < N; i++ ){
+  // normalise the importance weights and put it in matrix W
+  for ( size_t i = 0; i < N; i++ ){
     vector < double > column_vector{};
     double sum{};
     for ( size_t k = 0; k < n; k++ ){
@@ -256,17 +283,23 @@ int main(){
     for ( size_t j = 0; j < n; j++ ){
     W[j][i] = V[j][i] / sum;
     }
-    } */
+    }
+    
+    cout << "printing matrix W" << endl;
+    print_matrix_double(W);
+    
+    cout << "printing matrix Y" << endl;
+    print_matrix_double(Y);
   
-  /* // calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j)
+  // calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j)
   vector < double > E{};
   for ( size_t i = 0; i < N; i++ ){
-    vector < double > moltiplication_vector{};
+    vector < double > multiplication_vector{};
     for ( size_t j = 0; j < n; j++ ){
-      moltiplication_vector.push_back( Y[j][i] * W[j][i] );
+      multiplication_vector.push_back( Y[j][i] * W[j][i] );
     }
     double sum{};
-    for ( auto & n : moltiplication_vector)
+    for ( auto & n : multiplication_vector)
       sum += n;
     E.push_back( sum );
   }
@@ -280,7 +313,6 @@ int main(){
   for ( size_t i = 0; i < N; i++ ){
     cout << E[i] << endl;
   }
-  */
   
   return 0;
 }
