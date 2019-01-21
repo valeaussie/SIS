@@ -25,10 +25,10 @@ phi = 0.5, p = 0.4
 const double sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.4;
-const double N = 5;
+const double N = 20;
 vector < double > X{};
 vector < vector < double > > Obs{};
-vector < double > vector_Obs{};
+vector < double > vect_obs_nests{};
 
 void print_matrix_sizet( vector < vector < size_t > > m );
 void print_matrix_double( vector < vector < double > > M );
@@ -41,8 +41,7 @@ mt19937 generator( rd () );
 
 int main(){
 
-  // Sample from a normal distribution. Put the values in a vecotr X.
-  
+  // Sample from a normal distribution. Put the values in a vecotr X
   normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
   X.push_back( normalDist ( generator ) );
   
@@ -74,26 +73,36 @@ int main(){
     }
     Obs.push_back( tempvec );
   }
+  vect_obs_nests = Obs [N - 1];
   
-  vector_Obs = Obs [N - 1];
-  
-  cout << "vector x \n";
+  /*  cout << "vector x \n";
   print_vector(X);
   cout << "vector ti \n";
   print_vector(vector_ti);
   cout << "matrix Obs \n";
-  print_matrix_double(Obs);
+  print_matrix_double(Obs); */
 
-  // Create a dat file with the values of X, this is useful to graph with gnuplot
-  std::ofstream outFile1( "./vector_X.dat" );
+  // Create a dat file with the values of the vector of the observed nests "vect_obs_nests"
+  std::ofstream outFile1( "./real_data.dat" );
   outFile1 << endl;
-  for ( double n : X ){
+  for ( double n : vect_obs_nests ){
     outFile1 << n << endl;
   }
   outFile1.close();
+
+  // Print that file on the screen
+  cout << "printing the file with the data \n";
   for ( size_t i = 0; i < N; i++ ){
-    cout << X[i] << endl;
+    cout << vect_obs_nests[i] << endl;
+    }
+
+  // Create a dat file with the values of E
+  std::ofstream outFile2( "./vector_X.dat" );
+  outFile2 << endl;
+  for ( double n : X ){
+    outFile2 << n << endl;
   }
+  outFile2.close();
   
   /* this is the code for the method
      i here is the index for the current time that goes from 1 to N, 
@@ -112,7 +121,7 @@ int main(){
   vector < vector < double > > V{};
   //define the normalised weights vector
   vector < vector < double > > W{};
-  double n =3;
+  double n =100;
 
   // First I sample from a normal distribution with mean 0
   // and variance sigma^2/(1-phi^2) for every particle
@@ -124,38 +133,40 @@ int main(){
     normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
     vector_y0.push_back( normalDist ( generator ) );
   }
+
+  /* cout<< "vector_y0 \n";
+     print_vector(vector_y0); */
   
-  // Sampling from a geometric distribution with p = 0.4
-  // find the matrix_ti of the times of observations for each particle
   // Sampling for every particle from a normal distribution centred in the previous event time phi
   // and with variance sigma^2, find the matrix of events "matrix_sample"
-
   vector < vector < double > > matrix_sample{};
   vector < vector < double > > matrix_new_sample{};
+  vector < double > row_matrix_sample{};
+  vector < double > row_matrix_new_sample{};
   for ( size_t j = 0; j < n; j++ ){
-    vector < double > temp_y{};
-    vector < double > row_matrix_new_sample{};
     double y{};
     y = vector_y0[j];
-    temp_y.push_back(y);
-    for ( size_t i = 1; i < N; i++ ){
-      vector < double > row_matrix_sample{};
-      normal_distribution < double > normalDist( phi * temp_y[i - 1], sigmasq );
-      temp_y.push_back( normalDist ( generator ) );
-    }
-    for ( size_t l = 0; l < N; l++ ){
-      row_matrix_new_sample.push_back( temp_y[l] );
-    }
-    for ( size_t k = 0; k < N; k++ ){
-      if ( vector_Obs[k] != 0 ){
-	row_matrix_new_sample[k] = vector_Obs[k];
+    row_matrix_sample.push_back(y);
+    row_matrix_new_sample.push_back(y);
+    for ( size_t i = 0; i < N; i++ ){
+      normal_distribution < double > normalDist( phi * row_matrix_new_sample[i - 1], sigmasq );
+      double gen = normalDist ( generator );
+      row_matrix_new_sample.push_back( gen );
+      row_matrix_sample.push_back( gen );
+      if (vect_obs_nests[i] != 0 ){
+      row_matrix_new_sample[i] = vect_obs_nests[i];
       }
     }
-    matrix_sample.push_back( temp_y );
+    row_matrix_sample.pop_back();
+    row_matrix_new_sample.pop_back();
+    matrix_sample.push_back( row_matrix_sample );
     matrix_new_sample.push_back( row_matrix_new_sample );
     row_matrix_new_sample.clear();
+    row_matrix_sample.clear();
   }
 
+  // Sampling from a geometric distribution with p = 0.4
+  // find the matrix_ti of the times of observations for each particle
   vector < vector < size_t > > matrix_ti{};
   for ( size_t j = 0; j < n; j++ ){
     vector < size_t > temp_ti{}; 
@@ -167,13 +178,13 @@ int main(){
     matrix_ti.push_back( temp_ti );
   }
 
-  // Print matrix_sample, matrix_new_sample and matrix_ti
+  /* // Print matrix_sample, matrix_new_sample and matrix_ti
   cout << "matrix_sample \n";
   print_matrix_double( matrix_sample );
   cout << "matrix_new_sample \n";
   print_matrix_double( matrix_new_sample );
   cout << "matrix_t \n";
-  print_matrix_sizet( matrix_ti );
+  print_matrix_sizet( matrix_ti ); */
 
   // create the 3 dimensional vectors for observations and events  
   for ( size_t k = 0; k < n; k++){
@@ -197,7 +208,7 @@ int main(){
     new_sample.push_back( new_sim_matrix );
   }
 
-  // Print one matrix of the 3 dimensional vector "sample"
+  /* // Print one matrix of the 3 dimensional vector "sample"
   vector < vector < double > > printer1{};
   printer1 = sample[0];
   cout << "printing one of the sample matrix \n";
@@ -207,7 +218,7 @@ int main(){
   vector < vector < double > > printer2{};
   printer2 = new_sample[0];
   cout << "printing one of the new_sample matrix \n";
-  print_matrix_double( printer2 );
+  print_matrix_double( printer2 ); */
   
   // find the vector Y of new sample for all the times
   vector < vector < double > > Y{};
@@ -226,60 +237,56 @@ int main(){
   
   vector < double > w{};
   for ( size_t j = 0; j < n; j++ ){
-      double elem{};
-   for ( size_t i = 0; i < N; i++ ){
-    elem = 0;  
-   w.push_back(elem);
-   }   
-   W.push_back(w);
-   w.clear();
+    double elem{};
+    for ( size_t i = 0; i < N; i++ ){
+      elem = 0;  
+      w.push_back(elem);
+    }   
+    W.push_back(w);
+    w.clear();
   }
 
-  for ( size_t j = 0; j < n; j++ ){
-  W[j][0] =  1 / n;
-  }
+  /* for ( size_t j = 0; j < n; j++ ){
+    W[j][0] =  1 / n;
+    }*/
   
   //Finding the unnormalised weights
-  
-  for ( size_t k = 0; k < n; k++ ){
+
+  const double constant = ( 1 / ( 2 * sigmasq ) );
+  for ( size_t j = 0; j < n; j++ ){
     vector < vector < double > > matrix_sample{};
-    matrix_sample = sample[k];
+    matrix_sample = sample[j];
     vector < vector < double > > matrix_new_sample{};
-    matrix_new_sample = new_sample[k];
-    double weight(1);
-    vector < double > vector_weights{};
-    vector_weights.push_back(1);
-    for ( size_t i = 0; i < N-1; i++ ){
+    matrix_new_sample = new_sample[j];
+    vector < double > vector_v{};
+    vector_v.push_back(1);
+    double log_weight{};
+    for ( size_t i = 1; i < N; i++ ){
+      vector < double > vector_log_weights{};
+      vector_log_weights.push_back(1);
       vector < double > row_sample{};
-      row_sample = matrix_sample[N - 1];
+      row_sample = matrix_sample[i];
       vector < double > row_new_sample{};
-      row_new_sample = matrix_new_sample[N - 1];
-      double num = (row_new_sample[i+1] - phi * row_new_sample[i]) * (row_new_sample[i+1] - phi * row_new_sample[i]);
-      double den = (row_sample[i+1] - phi * row_sample[i]) * (row_sample[i+1] - phi * row_sample[i]);
-      double con = - ( 1 / ( 2 * sigmasq ) );
-      if ( row_sample[i] == row_new_sample[i] ){
-	weight = weight * 1;
-      }
-      else if ( row_new_sample[i] != 0 && row_sample[i] == 0 ){
-	weight = weight * ( (exp (con * num)) * p ) / ( (exp (con * den)) * (1 - p));
-      }
-      else if ( row_new_sample[i] == 0 && row_sample[i] != 0 ){
-	weight = weight * ( (exp (con * num)) * (1 - p)) / ( (exp (con * den)) * p);
+      row_new_sample = matrix_new_sample[i];
+      for ( size_t k = 0; k < row_sample.size(); k++){
+	if ( row_new_sample[k] == row_sample[k] && row_new_sample[k+1] == row_sample[k+1] ){}
+	else {
+	  double ys = - (row_new_sample[k+1] - phi * row_new_sample[k]) * (row_new_sample[k+1] - phi * row_new_sample[k]);
+	  double xs = (row_sample[k+1] - phi * row_sample[k]) * (row_sample[k+1] - phi * row_sample[k]);
+	  log_weight = constant * ( ys + xs );
+	  vector_log_weights.push_back(log_weight);
 	}
-	  else {
-	weight = weight * ( (exp (con * num)) ) / ( (exp (con * den)) );
-	}
-      vector_weights.push_back(weight);
       }
-    V.push_back(vector_weights);
+      double v{};
+      double sum = accumulate(vector_log_weights.begin(), vector_log_weights.end(), 0.0);
+      v = exp(sum);
+      vector_v.push_back(v);
+    }
+    V.push_back(vector_v);
   }
 
-  cout << "printing matrix V" << endl;
-  print_matrix_double(V);
-
-  
   // normalise the importance weights and put it in matrix W
-  for ( size_t i = 0; i < N; i++ ){
+  for ( size_t i = 1; i < N; i++ ){
     vector < double > column_vector{};
     double sum{};
     for ( size_t k = 0; k < n; k++ ){
@@ -288,15 +295,19 @@ int main(){
     for ( auto & n : column_vector)
       sum += n;
     for ( size_t j = 0; j < n; j++ ){
-    W[j][i] = V[j][i] / sum;
+      W[j][0] = 1 / N;
+      W[j][i] = V[j][i] / sum;
     }
-    }
-    
-    cout << "printing matrix W" << endl;
-    print_matrix_double(W);
-    
-    cout << "printing matrix Y" << endl;
-    print_matrix_double(Y);
+  }
+
+   cout << "printing matrix V" << endl;
+  print_matrix_double(V);  
+  
+  cout << "printing matrix W" << endl;
+  print_matrix_double(W);
+  
+  cout << "printing matrix Y" << endl;
+  print_matrix_double(Y);
   
   // calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j)
   vector < double > E{};
@@ -311,16 +322,18 @@ int main(){
     E.push_back( sum );
   }
   
-  // Create a dat file with the values of E, this is useful to graph with gnuplot
-    std::ofstream outFile2( "./vector_E.dat" );
-  outFile2 << endl;
+  // Create a dat file with the values of E
+  std::ofstream outFile3( "./vector_E.dat" );
+  outFile3 << endl;
   for ( double n : E ){
-    outFile2 << n << endl;
+    outFile3 << n << endl;
   }
-  outFile2.close();
+  outFile3.close();
+
+  cout << " printing matrix of expectations \n";
   for ( size_t i = 0; i < N; i++ ){
     cout << E[i] << endl;
-  }
+    }
   
   return 0;
 }
