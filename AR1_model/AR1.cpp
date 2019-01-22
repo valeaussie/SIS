@@ -90,10 +90,10 @@ int main(){
   }
   outFile1.close();
 
-  // Print that file on the screen
+  // Print that vector X on the screen
   cout << "printing the file with the data \n";
   for ( size_t i = 0; i < N; i++ ){
-    cout << vect_obs_nests[i] << endl;
+    cout << X[i] << endl;
     }
 
   // Create a dat file with the values of E
@@ -296,14 +296,14 @@ int main(){
     }
   }
 
-   cout << "printing matrix V" << endl;
+  /*cout << "printing matrix V" << endl;
   print_matrix_double(V);  
   
   cout << "printing matrix W" << endl;
   print_matrix_double(W);
   
   cout << "printing matrix Y" << endl;
-  print_matrix_double(Y);
+  print_matrix_double(Y);*/
   
   // calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j)
   vector < double > E{};
