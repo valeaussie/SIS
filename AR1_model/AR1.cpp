@@ -245,11 +245,7 @@ int main(){
     W.push_back(w);
     w.clear();
   }
-
-  /* for ( size_t j = 0; j < n; j++ ){
-    W[j][0] =  1 / n;
-    }*/
-  
+	
   //Finding the unnormalised weights
 
   const double constant = ( 1 / ( 2 * sigmasq ) );
@@ -295,7 +291,7 @@ int main(){
     for ( auto & n : column_vector)
       sum += n;
     for ( size_t j = 0; j < n; j++ ){
-      W[j][0] = 1 / N;
+      W[j][0] = 1 / n;
       W[j][i] = V[j][i] / sum;
     }
   }
