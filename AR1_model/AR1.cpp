@@ -268,11 +268,11 @@ int main(){
       row_sample = matrix_sample[i];
       vector < double > row_new_sample{};
       row_new_sample = matrix_new_sample[i];
-      for ( size_t k = 0; k < row_sample.size(); k++){
-	if ( row_new_sample[k] == row_sample[k] && row_new_sample[k+1] == row_sample[k+1] ){}
+      for ( size_t k = 1; k < row_sample.size(); k++){
+	if ( row_new_sample[k-1] == row_sample[k-1] && row_new_sample[k] == row_sample[k] ){}
 	else {
-	  double ys = - (row_new_sample[k+1] - phi * row_new_sample[k]) * (row_new_sample[k+1] - phi * row_new_sample[k]);
-	  double xs = (row_sample[k+1] - phi * row_sample[k]) * (row_sample[k+1] - phi * row_sample[k]);
+	  double ys = - (row_new_sample[k] - phi * row_new_sample[k-1]) * (row_new_sample[k] - phi * row_new_sample[k-1]);
+	  double xs = (row_sample[k] - phi * row_sample[k-1]) * (row_sample[k] - phi * row_sample[k-1]);
 	  log_weight = constant * ( ys + xs );
 	  vector_log_weights.push_back(log_weight);
 	}
