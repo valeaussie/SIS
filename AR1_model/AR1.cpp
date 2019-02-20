@@ -24,13 +24,12 @@ phi = 0.5, p = 0.4
 
 const double sigmasq = 1;
 const float phi = 0.5;
-const float p = 0.4;
-const double N = 10;
+const float p = 0.2;
+const double N = 20;
 vector < double > X{};
 vector < vector < double > > obs{};
 vector < double > vect_obs_N{};
 vector < double > vect_obs_half{};
-vector < double > vect_obs_quarter{};
 vector < double > vect_obs_3quarter{};
 
 
@@ -40,7 +39,7 @@ void print_vector( vector < double > v);
 
 
 random_device rd;
-mt19937 generator( 15 );
+mt19937 generator( 0 );
 
 
 int main(){
@@ -66,8 +65,7 @@ int main(){
   
   // Populate the matrix of observations callled obs
   // then create a vector vect_obs_N for the final time
-  // also create 3 vectors vect_obs_half, vect_obs_quarter, vect_obs_3quarter
-  // to be able to 
+  // vect_obs_quarter, 
   for ( size_t j = 0; j < N; j++ ){
     vector < double > tempvec{};
     for ( size_t i = 0; i < j + 1; i++ ){
@@ -81,6 +79,38 @@ int main(){
     obs.push_back( tempvec );
   }
   vect_obs_N = obs [N - 1];
+
+  //create a vector for half time vect_obs_half
+  for ( size_t j = 0; j < N; j++ ){
+    vector < double > tempvec{};
+    for ( size_t i = 0; i < j + 1; i++ ){
+      if ( vector_ti[i] <= j - i ){
+	tempvec.push_back( X[i]);
+      }
+      else  {
+	tempvec.push_back(0);
+      }
+    }
+    obs.push_back( tempvec );
+  }
+  vect_obs_half = obs [round( (N - 1)/2 )];
+
+  //create a vector for 3/4 of time vect_obs_3quarter
+  for ( size_t j = 0; j < N; j++ ){
+    vector < double > tempvec{};
+    for ( size_t i = 0; i < j + 1; i++ ){
+      if ( vector_ti[i] <= j - i ){
+	tempvec.push_back( X[i]);
+      }
+      else  {
+	tempvec.push_back(0);
+      }
+    }
+    obs.push_back( tempvec );
+  }
+  vect_obs_3quarter = obs [ round( 3*(N - 1)/4 )];
+
+  
   
   /*  cout << "vector x \n";
   print_vector(X);
@@ -89,7 +119,8 @@ int main(){
   cout << "matrix Obs \n";
   print_matrix_double(Obs); */
 
-  // Create a dat file with the values of the vector of the observed nests "vect_obs_nests"
+  // Create a dat file with the values of the vector of the observed events at time N
+  // call it real_data.dat
   ofstream outFile1( "./real_data.dat" );
   outFile1 << endl;
   for ( double n : vect_obs_N ){
@@ -103,7 +134,7 @@ int main(){
     cout << X[i] << endl;
     } */
 
-  // Create a dat file with the values of E
+  // Create a dat file with the values of X
   std::ofstream outFile2( "./vector_X.dat" );
   outFile2 << endl;
   for ( double n : X ){
@@ -131,7 +162,7 @@ int main(){
   // define the 3 dimensional matrix Y_W for simulation and weights
   vector < vector < vector < double > > > Y_W{};
   //number of particles
-  double n = 100;
+  double n = 30;
 
   // First I sample from a normal distribution with mean 0
   // and variance sigma^2/(1-phi^2) for every particle
@@ -149,7 +180,7 @@ int main(){
   
   // Sampling for every particle from a normal distribution centred in the previous event time phi
   // and with variance sigma^2, find the matrix of events "matrix_sample"
-  // making the substitiution every time that I have an observation in real life
+  // making the substitiution every time I have an observation in real life
   for ( size_t j = 0; j < n; j++ ){
     vector < vector < double > > matrix_sample{};
     vector < vector < double > > matrix_new_sample{};
@@ -197,7 +228,7 @@ int main(){
     matrix_ti.push_back( temp_ti );
   }
 
-  // Print one matrix of the 3 dimensional vector "sample"
+  /* // Print one matrix of the 3 dimensional vector "sample"
   vector < vector < double > > printer1{};
   printer1 = sample[0];
   cout << "printing one of the sample matrix \n";
@@ -206,19 +237,22 @@ int main(){
   vector < vector < double > > printer2{};
   printer2 = new_sample[0];
   cout << "printing one of the new_sample matrix \n";
-  print_matrix_double( printer2 );
+  print_matrix_double( printer2 ); */
   
-  // find the matrix Y of new sample for all the times
-  vector < vector < double > > Y{};
-  vector <vector < double > > temp_matrix{};
+  // find the matrix Y_N of new sample for the last time
+  vector < vector < double > > Y_N{};
   for ( size_t i = 0; i < n; i++ ){
-      temp_matrix = new_sample[i];
-      vector < double > temp_vector;
-      for ( size_t j = 0; j < N; j++ ){
-         temp_vector = temp_matrix[N-1];
-      }
-      Y.push_back(temp_vector);
+    vector < vector < double > > temp_matrix{};
+    temp_matrix = new_sample[i];
+    vector < double > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    Y_N.push_back(temp_vector);
   }
+  
+  cout << " printing matrix Y_N " << endl;
+  print_matrix_double(Y_N);
   
   // Creating a 3 dimentional matrix "W" of zeroes for the normalised weights
   vector < vector < double > > matrix_w{};
@@ -293,12 +327,13 @@ int main(){
     }
     V.push_back( matrix_V );
   }
+
   
-  // Print one matrix the 3 dimensional vector "new_samplev"
+  /* // Print one matrix of the 3 dimensional vector V
   vector < vector < double > > printer3{};
   printer3 = V[0];
   cout << "printing one of the V matrix \n";
-  print_matrix_double( printer3 );
+  print_matrix_double( printer3 ); */
 
   // normalise the importance weights and put it in matrix W
   for ( size_t i = 0; i < N; i++ ){
@@ -311,7 +346,24 @@ int main(){
 	W[j][i][k] = V[j][i][k] / sum;
       }
     }
-  }    
+  }
+
+  // Find the matrix of the weights for the last time
+  // and call it W_N
+  vector < vector < double > > W_N{};
+  for ( size_t i = 0; i < n; i++ ){
+    vector < vector < double > > temp_matrix{};
+    temp_matrix = W[i];
+    vector < double > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    W_N.push_back(temp_vector);
+  }
+
+  cout << " printing matrix W_N " << endl;
+  print_matrix_double(W_N);
+  
 
   // calculate the 3 dimensional matrix Y_W for simulation and weights
   for ( size_t j = 0; j < n; j++ ){
@@ -322,43 +374,54 @@ int main(){
     }
   }  
   
-  /* // calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j)
-  vector < vector < < double > > E{};
+  //calculate the expectation E[y_i] for the last observation
+  vector < double > E{};
+  vector < vector < double > > Y_W_matrix{};
+  for ( size_t j = 0; j < n; j++ ){
+    Y_W_matrix.push_back( Y_W[j][N - 1] );
+  }
   for ( size_t i = 0; i < N; i++ ){
     vector < double > multiplication_vector{};
     for ( size_t j = 0; j < n; j++ ){
-      multiplication_vector.push_back( Y[j][i] * matrix_W[j][i] );
+      multiplication_vector.push_back( Y_W_matrix[j][i] );
     }
     double sum{};
     for ( auto & n : multiplication_vector)
       sum += n;
     E.push_back( sum );
-    } */
+  }
   
-  /* // Create a dat file with the values of E
-  ofstream outFile3( "./vector_E_0.dat" );
+  // Create a dat file with the values of E
+  ofstream outFile3( "./vector_E.dat" );
   outFile3 << endl;
   for ( double n : E ){
     outFile3 << n << endl;
   }
-  outFile3.close(); */
+  outFile3.close();
 
-  /* // Create a dat file with the values of the matrix_new_sample
+  // Create a dat file with the values of the Y_N
   // to craete boxplots
-  ofstream outFile4( "./matrix_new_sample.dat" );
+  ofstream outFile4( "./Y_N.dat" );
   outFile4 << endl;
   for ( size_t lin = 0; lin < n; lin++ ){
     for ( size_t col = 0; col < N; col++ ){
-      outFile4 << matrix_new_sample[lin][col] << " ";
+      outFile4 << Y_N[lin][col] << " ";
     }
     outFile4 << endl;
   }
-  outFile4.close(); */
+  outFile4.close();
 
-  /* cout << "printing vector E of expectations \n";
-  for ( size_t i = 0; i < N; i++ ){
-    cout << E[i] << endl;
-    } */
+  // Create a dat file with the values of the W_N
+  // to craete boxplots
+  ofstream outFile5( "./W_N.dat" );
+  outFile5 << endl;
+  for ( size_t lin = 0; lin < n; lin++ ){
+    for ( size_t col = 0; col < N; col++ ){
+      outFile5 << W_N[lin][col] << " ";
+    }
+    outFile5 << endl;
+  }
+  outFile5.close();
   
   return 0;
 }
