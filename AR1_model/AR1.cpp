@@ -215,7 +215,7 @@ int main(){
     matrix_new_sample.clear();
   }
     
-  // Sampling from a geometric distribution with p = 0.4
+  /* // Sampling from a geometric distribution with p = 0.4
   // find the matrix_ti of the times of observations for each particle
   vector < vector < size_t > > matrix_ti{};
   for ( size_t j = 0; j < n; j++ ){
@@ -226,7 +226,7 @@ int main(){
       temp_ti.push_back( ti );
     }
     matrix_ti.push_back( temp_ti );
-  }
+    } */
 
   /* // Print one matrix of the 3 dimensional vector "sample"
   vector < vector < double > > printer1{};
