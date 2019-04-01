@@ -162,7 +162,7 @@ int main(){
   // define the 3 dimensional matrix Y_W for simulation and weights
   vector < vector < vector < double > > > Y_W{};
   //number of particles
-  double n = 30;
+  double n = 100;
 
   // First I sample from a normal distribution with mean 0
   // and variance sigma^2/(1-phi^2) for every particle
@@ -214,19 +214,6 @@ int main(){
     matrix_sample.clear();
     matrix_new_sample.clear();
   }
-    
-  /* // Sampling from a geometric distribution with p = 0.4
-  // find the matrix_ti of the times of observations for each particle
-  vector < vector < size_t > > matrix_ti{};
-  for ( size_t j = 0; j < n; j++ ){
-    vector < size_t > temp_ti{}; 
-    for (size_t i = 0; i < N; i++ ){ 
-      geometric_distribution < size_t > geoDist(p);
-      size_t ti = geoDist ( generator );
-      temp_ti.push_back( ti );
-    }
-    matrix_ti.push_back( temp_ti );
-    } */
 
   /* // Print one matrix of the 3 dimensional vector "sample"
   vector < vector < double > > printer1{};
@@ -338,7 +325,7 @@ int main(){
   // normalise the importance weights and put it in matrix W
   for ( size_t i = 0; i < N; i++ ){
     for (size_t k = 0; k < i + 1; k++){
-      double sum{};
+      double sum{0};
       for (size_t l = 0; l < n; l++ ){
 	sum += V[l][i][k];
       }
@@ -347,6 +334,29 @@ int main(){
       }
     }
   }
+
+  // Resample
+  double tresh = n/2;
+  for ( size_t i = 0; i < N; i++ ){
+    for (size_t k = 0; k < i + 1; k++){
+      double ess{0};
+      double sumsq{0};
+      for (size_t l = 0; l < n; l++ ){
+	// calculate the effective sample size, called ess
+	sum += W[l][i][k] *  W[l][i][k];
+	ess = 1 / sumsq;
+      }
+      // draw particles from the current particle set with probabilities
+      // proportional to their weights and replace the current particles
+      for (size_t j = 0; j < n; j++ ){
+	if (ess < tresh){
+	  W[j][i][k];
+	}
+      }
+    }
+  }
+      
+  
 
   // Find the matrix of the weights for the last time
   // and call it W_N
