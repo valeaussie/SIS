@@ -25,7 +25,7 @@ phi = 0.5, p = 0.4
 const double sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.2;
-const double N = 20;
+const double N = 10;
 vector < double > X{};
 vector < vector < double > > obs{};
 vector < double > vect_obs_N{};
@@ -33,8 +33,8 @@ vector < double > vect_obs_half{};
 vector < double > vect_obs_3quarter{};
 
 
-void print_matrix_sizet( vector < vector < size_t > > m );
-void print_matrix_double( vector < vector < double > > M );
+void print_matrix( vector < vector < size_t > > m );
+void print_matrix( vector < vector < double > > M );
 void print_vector( vector < double > v);
 
 
@@ -79,6 +79,8 @@ int main(){
     obs.push_back( tempvec );
   }
   vect_obs_N = obs [N - 1];
+
+  print_matrix(obs);
 
   //create a vector for half time vect_obs_half
   for ( size_t j = 0; j < N; j++ ){
@@ -162,7 +164,7 @@ int main(){
   // define the 3 dimensional matrix Y_W for simulation and weights
   vector < vector < vector < double > > > Y_W{};
   //number of particles
-  double n = 100;
+  double n = 5;
 
   // First I sample from a normal distribution with mean 0
   // and variance sigma^2/(1-phi^2) for every particle
@@ -199,6 +201,11 @@ int main(){
       double gen = normalDist ( generator );
       row_matrix_new_sample.push_back( gen );
       row_matrix_sample.push_back( gen );
+      for (size_t k = 0; k < i; k++){
+	if (row_obs[k] != 0 ){
+	  row_matrix_sample[k] = row_matrix_new_sample[k];
+	}
+      }
       for (size_t k = 0; k < i + 1; k++){
 	if (row_obs[k] != 0 ){
 	  row_matrix_new_sample[k] = row_obs[k];
@@ -214,17 +221,20 @@ int main(){
     matrix_sample.clear();
     matrix_new_sample.clear();
   }
+  
 
-  /* // Print one matrix of the 3 dimensional vector "sample"
+
+
+  // Print one matrix of the 3 dimensional vector "sample"
   vector < vector < double > > printer1{};
   printer1 = sample[0];
   cout << "printing one of the sample matrix \n";
-  print_matrix_double( printer1 );
+  print_matrix( printer1 );
   // Print one matrix the 3 dimensional vector "new_sample"
   vector < vector < double > > printer2{};
   printer2 = new_sample[0];
   cout << "printing one of the new_sample matrix \n";
-  print_matrix_double( printer2 ); */
+  print_matrix( printer2 );
   
   // find the matrix Y_N of new sample for the last time
   vector < vector < double > > Y_N{};
@@ -239,7 +249,7 @@ int main(){
   }
   
   cout << " printing matrix Y_N " << endl;
-  print_matrix_double(Y_N);
+  print_matrix(Y_N);
   
   // Creating a 3 dimentional matrix "W" of zeroes for the normalised weights
   vector < vector < double > > matrix_w{};
@@ -274,7 +284,22 @@ int main(){
     Y_W.push_back( matrix_y_w );
     matrix_y_w.clear();
   }
-  
+
+  // Sampling from a bernoulli distribution with probability p
+  // find the matrix_B of the observations for each particle at each time
+  vector < vector < size_t > > matrix_sampled_times{};
+  for ( size_t j = 0; j < n; j++ ){
+    vector < size_t > temp_bi{}; 
+    for (size_t i = 0; i < N; i++ ){ 
+      bernoulli_distribution BerDist(1-p);
+      int bi = BerDist ( generator );
+      temp_bi.push_back( bi );
+    }
+    matrix_sampled_times.push_back( temp_bi );
+  }
+
+  print_matrix(matrix_sampled_times);
+
   
   //Finding the unnormalised weights (using log then exponentiating)
   const double constant = ( 1 / ( 2 * sigmasq ) );
@@ -334,7 +359,7 @@ int main(){
       }
     }
   }
-
+  /*
   // Resample
   double tresh = n/2;
   for ( size_t i = 0; i < N; i++ ){
@@ -356,7 +381,7 @@ int main(){
     }
   }
       
-  
+  */
 
   // Find the matrix of the weights for the last time
   // and call it W_N
@@ -372,7 +397,7 @@ int main(){
   }
 
   cout << " printing matrix W_N " << endl;
-  print_matrix_double(W_N);
+  print_matrix(W_N);
   
 
   // calculate the 3 dimensional matrix Y_W for simulation and weights
@@ -442,7 +467,7 @@ int main(){
 // functions definitions
 
 // this function prints a matrix of unsigned size_t
-void print_matrix_sizet( vector < vector < size_t > > m ){
+void print_matrix( vector < vector < size_t > > m ){
   for ( const vector < size_t > & v : m ){
     for  ( size_t x : v ) cout << x << ' ';
     cout << endl;
@@ -450,7 +475,7 @@ void print_matrix_sizet( vector < vector < size_t > > m ){
 }
 
 // this function prints a matrix of signed
-void print_matrix_double( vector < vector < double > > M ){
+void print_matrix( vector < vector < double > > M ){
   for ( const vector < double > & v : M ){
     for  ( double x : v ) cout << x << ' ';
     cout << endl;
