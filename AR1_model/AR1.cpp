@@ -27,10 +27,10 @@ const float phi = 0.5;
 const float p = 0.2;
 const double N = 10;
 vector < double > X{};
-vector < vector < double > > obs{};
-vector < double > vect_obs_N{};
-vector < double > vect_obs_half{};
-vector < double > vect_obs_3quarter{};
+vector < vector < size_t > > obs{};
+vector < size_t > vect_obs_N{};
+vector < size_t > vect_obs_half{};
+vector < size_t > vect_obs_3quarter{};
 
 
 void print_matrix( vector < vector < size_t > > m );
@@ -67,10 +67,10 @@ int main(){
   // then create a vector vect_obs_N for the final time
   // vect_obs_quarter, 
   for ( size_t j = 0; j < N; j++ ){
-    vector < double > tempvec{};
+    vector < size_t > tempvec{};
     for ( size_t i = 0; i < j + 1; i++ ){
       if ( vector_ti[i] <= j - i ){
-	tempvec.push_back( X[i]);
+	tempvec.push_back(1);
       }
       else  {
 	tempvec.push_back(0);
@@ -80,14 +80,15 @@ int main(){
   }
   vect_obs_N = obs [N - 1];
 
+  cout << "printing the matrix of observations" << endl;
   print_matrix(obs);
 
   //create a vector for half time vect_obs_half
   for ( size_t j = 0; j < N; j++ ){
-    vector < double > tempvec{};
+    vector < size_t > tempvec{};
     for ( size_t i = 0; i < j + 1; i++ ){
       if ( vector_ti[i] <= j - i ){
-	tempvec.push_back( X[i]);
+	tempvec.push_back(1);
       }
       else  {
 	tempvec.push_back(0);
@@ -99,10 +100,10 @@ int main(){
 
   //create a vector for 3/4 of time vect_obs_3quarter
   for ( size_t j = 0; j < N; j++ ){
-    vector < double > tempvec{};
+    vector < size_t > tempvec{};
     for ( size_t i = 0; i < j + 1; i++ ){
       if ( vector_ti[i] <= j - i ){
-	tempvec.push_back( X[i]);
+	tempvec.push_back(1);
       }
       else  {
 	tempvec.push_back(0);
@@ -130,11 +131,11 @@ int main(){
   }
   outFile1.close();
 
-  /* // Print that vector X on the screen
-  cout << "printing the file with the datavector X of data \n";
+  // Print that vector X on the screen
+  cout << "printing the vector X of data \n";
   for ( size_t i = 0; i < N; i++ ){
     cout << X[i] << endl;
-    } */
+    }
 
   // Create a dat file with the values of X
   std::ofstream outFile2( "./vector_X.dat" );
@@ -155,7 +156,8 @@ int main(){
   // and on the third ax I list the particles  
   
   vector < vector < vector < double > > > sample{};
-  vector < vector < vector < size_t > > > times{};
+  vector < vector < vector < size_t > > > sam_obs{};
+  vector < vector < vector < size_t > > > new_sam_obs{};
   vector < vector < vector < double > > > new_sample{};
   //define the unnormalised weights 3 dimensional matrix
   vector < vector < vector < double > > > V{};
@@ -181,8 +183,9 @@ int main(){
      print_vector(vector_y0); */
   
   // Sampling for every particle from a normal distribution centred in the previous event time phi
-  // and with variance sigma^2, find the matrix of events "matrix_sample"
-  // making the substitiution every time I have an observation in real life
+  // and with variance sigma^2, find the matrix of events "matrix_sample".
+  // Making the substitiution every time I have an observation in real life,
+  // find the matrix of updated events "matrix_new_sample"
   for ( size_t j = 0; j < n; j++ ){
     vector < vector < double > > matrix_sample{};
     vector < vector < double > > matrix_new_sample{};
@@ -195,7 +198,7 @@ int main(){
     matrix_sample.push_back( row_matrix_sample );
     matrix_new_sample.push_back( row_matrix_new_sample );
     for ( size_t i = 1; i < N; i++ ){
-      vector < double > row_obs{};
+      vector < size_t > row_obs{};
       row_obs = obs[i];
       normal_distribution < double > normalDist( phi * row_matrix_new_sample[i - 1], sigmasq );
       double gen = normalDist ( generator );
@@ -208,7 +211,7 @@ int main(){
       }
       for (size_t k = 0; k < i + 1; k++){
 	if (row_obs[k] != 0 ){
-	  row_matrix_new_sample[k] = row_obs[k];
+	  row_matrix_new_sample[k] = X[k];
 	}
       }
       matrix_sample.push_back( row_matrix_sample );
@@ -220,6 +223,43 @@ int main(){
     new_sample.push_back( matrix_new_sample );
     matrix_sample.clear();
     matrix_new_sample.clear();
+  }
+
+  // Sampling for every particle from a bernoulli distribution with probability p
+  // find the matrix of observations "matrix_obs"
+  // Making the substitiution every time I have an observation in real life,
+  // find the matrix of updated observations "matrix_new_obs"
+  for ( size_t j = 0; j < n; j++ ){
+    vector < vector < size_t > > matrix_obs{};
+    vector < vector < size_t > > matrix_new_obs{};
+    vector < size_t > row_matrix_obs{};
+    vector < size_t > row_matrix_new_obs{};
+    for ( size_t i = 0; i < N; i++ ){
+      vector < size_t > row_obs{};
+      row_obs = obs[i];
+      bernoulli_distribution BerDist(p);
+      double gen = BerDist ( generator );
+      row_matrix_new_obs.push_back( gen );
+      row_matrix_obs.push_back( gen );
+      for (size_t k = 0; k < i; k++){
+	if (row_obs[k] != 0 ){
+	  row_matrix_obs[k] = row_matrix_new_obs[k];
+	}
+      }
+      for (size_t k = 0; k < i + 1; k++){
+	if (row_obs[k] != 0 ){
+	  row_matrix_new_obs[k] = 1;
+	}
+      }
+      matrix_obs.push_back( row_matrix_obs );
+      matrix_new_obs.push_back( row_matrix_new_obs );
+    }
+    row_matrix_obs.clear();
+    row_matrix_new_obs.clear();
+    sam_obs.push_back( matrix_obs );
+    new_sam_obs.push_back( matrix_new_obs );
+    matrix_obs.clear();
+    matrix_new_obs.clear();
   }
   
 
@@ -235,6 +275,17 @@ int main(){
   printer2 = new_sample[0];
   cout << "printing one of the new_sample matrix \n";
   print_matrix( printer2 );
+
+  // Print one matrix of the 3 dimensional vector "sam_obs"
+  vector < vector < size_t > > printer3{};
+  printer3 = sam_obs[0];
+  cout << "printing one of the sam_obs matrix \n";
+  print_matrix( printer3 );
+  // Print one matrix the 3 dimensional vector "new_sam_obs"
+  vector < vector < size_t > > printer4{};
+  printer4 = new_sam_obs[0];
+  cout << "printing one of the new_sam_obs matrix \n";
+  print_matrix( printer4 );
   
   // find the matrix Y_N of new sample for the last time
   vector < vector < double > > Y_N{};
@@ -284,21 +335,6 @@ int main(){
     Y_W.push_back( matrix_y_w );
     matrix_y_w.clear();
   }
-
-  // Sampling from a bernoulli distribution with probability p
-  // find the matrix_B of the observations for each particle at each time
-  vector < vector < size_t > > matrix_sampled_times{};
-  for ( size_t j = 0; j < n; j++ ){
-    vector < size_t > temp_bi{}; 
-    for (size_t i = 0; i < N; i++ ){ 
-      bernoulli_distribution BerDist(1-p);
-      int bi = BerDist ( generator );
-      temp_bi.push_back( bi );
-    }
-    matrix_sampled_times.push_back( temp_bi );
-  }
-
-  print_matrix(matrix_sampled_times);
 
   
   //Finding the unnormalised weights (using log then exponentiating)
@@ -487,5 +523,5 @@ void print_vector( vector < double > v){
   for ( size_t i = 0; i < v.size(); i++){
     cout << v[i] << ' ';
   }
-  cout << "\n";
+  cout << endl;
 }
