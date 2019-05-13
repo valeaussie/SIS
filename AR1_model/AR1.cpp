@@ -8,17 +8,16 @@
 
 using namespace std;
 
-/* this is the code to sample from my model and find the vector of the observations.
-Sampling from the AR1 model I populate a vector X. This will be the vector of the events.
-Sampling form a geometric distribution I populate a vector "vector_ti" for the times of observations 
+/* this is the code to simulate from my model and find the vector of the observations.
+Sampling from a normal distribution I populate a vector X of events.
+Sampling form a geometric distribution I populate a vector "vector_ti" for the times of observations
 for the event that happened at time i (event x_i will be observed at time t_i from when it happened).
-The matrix "Obs" will have on each row the events that have been observed up to time i
-wich is the number of the row. So at time 0 I will have 1 element in the row, 
-that might or might not have been observed,
+Then I will the create a matrix of observations "Obs" that will have on each row the events that have been observed up to
+the time corresponding to the row number. 
+So at time 0 I will have 1 element in the row that might or might not have been observed,
 at time 1 I will have two elements on the row, some observed, some not, and so on
-I will have 0s whenever the element have have not been yet obeserved at the time
-corresponding to the row
-the values of the parameters at this stage are fixed and are sigma^2 = 1, 
+I will have 0s whenever the element have have not been yet obeserved.
+The values of the parameters at this stage are fixed and are sigma^2 = 1, 
 phi = 0.5, p = 0.4
 */
 
@@ -39,7 +38,7 @@ void print_vector( vector < double > v);
 
 
 random_device rd;
-mt19937 generator( 0 );
+mt19937 generator( rd() );
 
 
 int main(){
@@ -152,8 +151,8 @@ int main(){
   // Here I calculate the 3 dimensional vector called "sample" that will store the new samples
   // for every particle.
   // I also calculate the 3 dimensional vector of the times of observations
-  // Tese vectors are stacked from time zero to time N forming a matrix
-  // and on the third ax I list the particles  
+  // These vectors are stacked from time zero to time N forming a matrix
+  // and on the third dimention I list the particles  
   
   vector < vector < vector < double > > > sample{};
   vector < vector < vector < size_t > > > sam_obs{};
@@ -162,11 +161,11 @@ int main(){
   //define the unnormalised weights 3 dimensional matrix
   vector < vector < vector < double > > > un_weights{};
   //define the normalised weights 3 dimensional matrix
-  vector < vector < vector < double > > > Weights{};
+  vector < vector < vector < double > > > weights{};
   // define the 3 dimensional matrix Y_W for simulation and weights
   vector < vector < vector < double > > > sam_times_weights{};
   //number of particles
-  double n = 5;
+  double n = 20;
 
   // First I sample from a normal distribution with mean 0
   // and variance sigma^2/(1-phi^2) for every particle
@@ -178,14 +177,11 @@ int main(){
     normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
     vector_y0.push_back( normalDist ( generator ) );
   }
-
-  /* cout << "vector_y0 \n";
-     print_vector(vector_y0); */
   
   // Sampling for every particle from a normal distribution centred in the previous event time phi
-  // and with variance sigma^2, find the matrix of events "matrix_sample".
+  // and with variance sigma^2, find the matrix of events "sample".
   // Making the substitiution every time I have an observation in real life,
-  // find the matrix of updated events "matrix_new_sample"
+  // find the matrix of updated events "new_sample"
   for ( size_t j = 0; j < n; j++ ){
     vector < vector < double > > matrix_sample{};
     vector < vector < double > > matrix_new_sample{};
@@ -226,9 +222,9 @@ int main(){
   }
 
   // Sampling for every particle from a bernoulli distribution with probability p
-  // find the matrix of observations "matrix_obs"
+  // find the matrix of sampled observations "sam_obs"
   // Making the substitiution every time I have an observation in real life,
-  // find the matrix of updated observations "matrix_new_obs"
+  // find the matrix of updated sampled observations new_sam_obs"
   for ( size_t j = 0; j < n; j++ ){
     vector < vector < size_t > > matrix_obs{};
     vector < vector < size_t > > matrix_new_obs{};
@@ -299,25 +295,9 @@ int main(){
     sam_last_time.push_back(temp_vector);
   }
   
-  cout << " printing matrix sam_last_time " << endl;
+  cout << "printing matrix sam_last_time" << endl;
   print_matrix(sam_last_time);
   
-  // Creating a 3 dimentional matrix "Weights" of zeroes for the normalised weights
-  vector < vector < double > > matrix_w{};
-  vector < double > vector_w{};
-  for ( size_t j = 0; j < n; j++ ){
-    double elem{};
-    for ( size_t i = 0; i < N; i++ ){
-      for (size_t k = 0; k < i + 1; k++ ){
-	elem = 0;  
-	vector_w.push_back( elem );
-      }   
-      matrix_w.push_back( vector_w );
-      vector_w.clear();
-    }
-    Weights.push_back( matrix_w );
-    matrix_w.clear();
-  }
 
   // Creating a 3 dimentional matrix "sam_times_weights" of zeroes
   // for the values of the sample times the weights
@@ -397,6 +377,23 @@ int main(){
   cout << "printing one of the un_weights matrix \n";
   print_matrix( printer5 );
 
+  // Creating a 3 dimentional matrix "weights" of zeroes for the normalised weights
+  vector < vector < double > > matrix_w{};
+  vector < double > vector_w{};
+  for ( size_t j = 0; j < n; j++ ){
+    double elem{};
+    for ( size_t i = 0; i < N; i++ ){
+      for (size_t k = 0; k < i + 1; k++ ){
+	elem = 0;  
+	vector_w.push_back( elem );
+      }   
+      matrix_w.push_back( vector_w );
+      vector_w.clear();
+    }
+    weights.push_back( matrix_w );
+    matrix_w.clear();
+  }
+
   // Normalise the importance weights and put it in matrix Weights
   for ( size_t i = 0; i < N; i++ ){
     for (size_t k = 0; k < i + 1; k++){
@@ -405,14 +402,16 @@ int main(){
 	sum += un_weights[l][i][k];
       }
       for (size_t j = 0; j < n; j++ ){
-	Weights[j][i][k] = un_weights[j][i][k] / sum;
+	weights[j][i][k] = un_weights[j][i][k] / sum;
       }
     }
   }
 
-  
   /*
   // Resample
+  vector < double > temp_vec;
+  vector < vector < double > > temp_matrix;
+  vector < vecotr < vector < double > > > temp_2matrix;
   double tresh = n/2;
   for ( size_t i = 0; i < N; i++ ){
     for (size_t k = 0; k < i + 1; k++){
@@ -420,27 +419,26 @@ int main(){
       double sumsq{0};
       for (size_t l = 0; l < n; l++ ){
 	// calculate the effective sample size, called ess
-	sum += Weights[l][i][k] *  Weights[l][i][k];
+	sumsq += weights[l][i][k] *  weights[l][i][k];
 	ess = 1 / sumsq;
       }
+      
       // draw particles from the current particle set with probabilities
       // proportional to their weights and replace the current particles
-      for (size_t j = 0; j < n; j++ ){
-	if (ess < tresh){
-	  W[j][i][k];
-	}
-      }
+      //for (size_t j = 0; j < n; j++ ){
+      //	if (ess < tresh){
+      //	  weights[j][i][k];
+      //	}
+      // }
     }
-  }
-      
-  */
+    } */
 
   // Find the matrix of the weights for the last time
   // and call it weights_last_time
   vector < vector < double > > weights_last_time{};
   for ( size_t i = 0; i < n; i++ ){
     vector < vector < double > > temp_matrix{};
-    temp_matrix = Weights[i];
+    temp_matrix = weights[i];
     vector < double > temp_vector;
     for ( size_t j = 0; j < N; j++ ){
       temp_vector = temp_matrix[N-1];
@@ -448,7 +446,7 @@ int main(){
     weights_last_time.push_back(temp_vector);
   }
 
-  cout << " printing matrix weights_last_time " << endl;
+  cout << "printing matrix weights_last_time" << endl;
   print_matrix(weights_last_time);
   
 
@@ -456,7 +454,7 @@ int main(){
   for ( size_t j = 0; j < n; j++ ){
     for ( size_t i = 0; i < N; i++ ){
       for ( size_t k = 0; k < i + 1; k++ ){
- 	sam_times_weights[j][i][k] = new_sample[j][i][k] * Weights[j][i][k];
+ 	sam_times_weights[j][i][k] = new_sample[j][i][k] * weights[j][i][k];
       }
     }
   }  
@@ -477,6 +475,9 @@ int main(){
       sum += n;
     E.push_back( sum );
   }
+
+  cout << "printing vector of expectations " << endl;
+  print_vector(E);
   
   // Create a dat file with the values of E
   ofstream outFile3( "./vector_E.dat" );
