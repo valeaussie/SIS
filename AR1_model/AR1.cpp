@@ -160,11 +160,11 @@ int main(){
   vector < vector < vector < size_t > > > new_sam_obs{};
   vector < vector < vector < double > > > new_sample{};
   //define the unnormalised weights 3 dimensional matrix
-  vector < vector < vector < double > > > V{};
+  vector < vector < vector < double > > > un_weights{};
   //define the normalised weights 3 dimensional matrix
-  vector < vector < vector < double > > > W{};
+  vector < vector < vector < double > > > Weights{};
   // define the 3 dimensional matrix Y_W for simulation and weights
-  vector < vector < vector < double > > > Y_W{};
+  vector < vector < vector < double > > > sam_times_weights{};
   //number of particles
   double n = 5;
 
@@ -287,8 +287,8 @@ int main(){
   cout << "printing one of the new_sam_obs matrix \n";
   print_matrix( printer4 );
   
-  // find the matrix Y_N of new sample for the last time
-  vector < vector < double > > Y_N{};
+  // find the matrix sam_last_time of new sample for the last time
+  vector < vector < double > > sam_last_time{};
   for ( size_t i = 0; i < n; i++ ){
     vector < vector < double > > temp_matrix{};
     temp_matrix = new_sample[i];
@@ -296,13 +296,13 @@ int main(){
     for ( size_t j = 0; j < N; j++ ){
       temp_vector = temp_matrix[N-1];
     }
-    Y_N.push_back(temp_vector);
+    sam_last_time.push_back(temp_vector);
   }
   
-  cout << " printing matrix Y_N " << endl;
-  print_matrix(Y_N);
+  cout << " printing matrix sam_last_time " << endl;
+  print_matrix(sam_last_time);
   
-  // Creating a 3 dimentional matrix "W" of zeroes for the normalised weights
+  // Creating a 3 dimentional matrix "Weights" of zeroes for the normalised weights
   vector < vector < double > > matrix_w{};
   vector < double > vector_w{};
   for ( size_t j = 0; j < n; j++ ){
@@ -315,11 +315,12 @@ int main(){
       matrix_w.push_back( vector_w );
       vector_w.clear();
     }
-    W.push_back( matrix_w );
+    Weights.push_back( matrix_w );
     matrix_w.clear();
   }
 
-  // Creating a 3 dimentional matrix "Y_W" of zeroes
+  // Creating a 3 dimentional matrix "sam_times_weights" of zeroes
+  // for the values of the sample times the weights
   vector < vector < double > > matrix_y_w{};
   vector < double > vector_y_w{};
   for ( size_t j = 0; j < n; j++ ){
@@ -332,7 +333,7 @@ int main(){
       matrix_y_w.push_back( vector_y_w );
       vector_y_w.clear();
     }
-    Y_W.push_back( matrix_y_w );
+    sam_times_weights.push_back( matrix_y_w );
     matrix_y_w.clear();
   }
 
@@ -345,8 +346,12 @@ int main(){
     matrix_V.push_back( temp_vec );
     vector < vector < double > > temp_matrix_sample{};
     temp_matrix_sample = sample[j];
+    vector < vector < size_t > > temp_matrix_obs{};
+    temp_matrix_obs = sam_obs[j];
     vector < vector < double > > temp_matrix_new_sample{};
     temp_matrix_new_sample = new_sample[j];
+    vector < vector < size_t > > temp_matrix_new_obs{};
+    temp_matrix_new_obs = new_sam_obs[j];
     vector < double > vector_V{};
     double log_weight{};
     for ( size_t i = 1; i < N; i++ ){
@@ -355,16 +360,25 @@ int main(){
       vector_log_weights.push_back(1);
       vector < double > row_sample{};
       row_sample = temp_matrix_sample[i];
+      vector < size_t > row_obs{};
+      row_obs = temp_matrix_obs[i];
       vector < double > row_new_sample{};
       row_new_sample = temp_matrix_new_sample[i];
+      vector < size_t > row_new_obs{};
+      row_new_obs = temp_matrix_new_obs[i];
+      double ys{};
+      double xs{};
       for ( size_t k = 1; k < row_sample.size(); k++){
 	if ( row_new_sample[k-1] == row_sample[k-1] && row_new_sample[k] == row_sample[k] ){}
 	else {
-	  double ys = - (row_new_sample[k] - phi * row_new_sample[k-1]) * (row_new_sample[k] - phi * row_new_sample[k-1]);
-	  double xs = (row_sample[k] - phi * row_sample[k-1]) * (row_sample[k] - phi * row_sample[k-1]);
+	  ys = - (row_new_sample[k] - phi * row_new_sample[k-1]) * (row_new_sample[k] - phi * row_new_sample[k-1]);
+	  xs = (row_sample[k] - phi * row_sample[k-1]) * (row_sample[k] - phi * row_sample[k-1]);
 	  log_weight = constant * ( ys + xs );
 	  vector_log_weights.push_back(log_weight);
 	}
+	if ( row_new_obs[k] == row_obs[k] ){}
+	else if ( row_new_obs[k] == 1 && row_obs[k] == 0 ){ ys = ys * (1 - p ) ; xs = xs * p; }
+	else { ys = ys * p ; xs = xs * ( 1 -p ); }
       double v{};
       double sum = accumulate(vector_log_weights.begin(), vector_log_weights.end(), 0.0);
       v = exp(sum);
@@ -373,28 +387,30 @@ int main(){
     matrix_V.push_back(vector_V);
     vector_V.clear();
     }
-    V.push_back( matrix_V );
+    un_weights.push_back( matrix_V );
   }
 
   
-  /* // Print one matrix of the 3 dimensional vector V
-  vector < vector < double > > printer3{};
-  printer3 = V[0];
-  cout << "printing one of the V matrix \n";
-  print_matrix_double( printer3 ); */
+  // Print one matrix of the 3 dimensional vector un_weights of the unnormalised weights
+  vector < vector < double > > printer5{};
+  printer5 = un_weights[0];
+  cout << "printing one of the un_weights matrix \n";
+  print_matrix( printer5 );
 
-  // normalise the importance weights and put it in matrix W
+  // Normalise the importance weights and put it in matrix Weights
   for ( size_t i = 0; i < N; i++ ){
     for (size_t k = 0; k < i + 1; k++){
       double sum{0};
       for (size_t l = 0; l < n; l++ ){
-	sum += V[l][i][k];
+	sum += un_weights[l][i][k];
       }
       for (size_t j = 0; j < n; j++ ){
-	W[j][i][k] = V[j][i][k] / sum;
+	Weights[j][i][k] = un_weights[j][i][k] / sum;
       }
     }
   }
+
+  
   /*
   // Resample
   double tresh = n/2;
@@ -404,7 +420,7 @@ int main(){
       double sumsq{0};
       for (size_t l = 0; l < n; l++ ){
 	// calculate the effective sample size, called ess
-	sum += W[l][i][k] *  W[l][i][k];
+	sum += Weights[l][i][k] *  Weights[l][i][k];
 	ess = 1 / sumsq;
       }
       // draw particles from the current particle set with probabilities
@@ -420,27 +436,27 @@ int main(){
   */
 
   // Find the matrix of the weights for the last time
-  // and call it W_N
-  vector < vector < double > > W_N{};
+  // and call it weights_last_time
+  vector < vector < double > > weights_last_time{};
   for ( size_t i = 0; i < n; i++ ){
     vector < vector < double > > temp_matrix{};
-    temp_matrix = W[i];
+    temp_matrix = Weights[i];
     vector < double > temp_vector;
     for ( size_t j = 0; j < N; j++ ){
       temp_vector = temp_matrix[N-1];
     }
-    W_N.push_back(temp_vector);
+    weights_last_time.push_back(temp_vector);
   }
 
-  cout << " printing matrix W_N " << endl;
-  print_matrix(W_N);
+  cout << " printing matrix weights_last_time " << endl;
+  print_matrix(weights_last_time);
   
 
-  // calculate the 3 dimensional matrix Y_W for simulation and weights
+  // calculate the 3 dimensional matrix sim_time_weights for simulation and weights
   for ( size_t j = 0; j < n; j++ ){
     for ( size_t i = 0; i < N; i++ ){
       for ( size_t k = 0; k < i + 1; k++ ){
- 	Y_W[j][i][k] = new_sample[j][i][k] * W[j][i][k];
+ 	sam_times_weights[j][i][k] = new_sample[j][i][k] * Weights[j][i][k];
       }
     }
   }  
@@ -449,7 +465,7 @@ int main(){
   vector < double > E{};
   vector < vector < double > > Y_W_matrix{};
   for ( size_t j = 0; j < n; j++ ){
-    Y_W_matrix.push_back( Y_W[j][N - 1] );
+    Y_W_matrix.push_back( sam_times_weights[j][N - 1] );
   }
   for ( size_t i = 0; i < N; i++ ){
     vector < double > multiplication_vector{};
@@ -470,13 +486,13 @@ int main(){
   }
   outFile3.close();
 
-  // Create a dat file with the values of the Y_N
+  // Create a dat file with the values of the sam_last_time
   // to craete boxplots
-  ofstream outFile4( "./Y_N.dat" );
+  ofstream outFile4( "./sam_last_time.dat" );
   outFile4 << endl;
   for ( size_t lin = 0; lin < n; lin++ ){
     for ( size_t col = 0; col < N; col++ ){
-      outFile4 << Y_N[lin][col] << " ";
+      outFile4 << sam_last_time[lin][col] << " ";
     }
     outFile4 << endl;
   }
@@ -484,11 +500,11 @@ int main(){
 
   // Create a dat file with the values of the W_N
   // to craete boxplots
-  ofstream outFile5( "./W_N.dat" );
+  ofstream outFile5( "./weights_last_time.dat" );
   outFile5 << endl;
   for ( size_t lin = 0; lin < n; lin++ ){
     for ( size_t col = 0; col < N; col++ ){
-      outFile5 << W_N[lin][col] << " ";
+      outFile5 << weights_last_time[lin][col] << " ";
     }
     outFile5 << endl;
   }
@@ -510,7 +526,7 @@ void print_matrix( vector < vector < size_t > > m ){
   }
 }
 
-// this function prints a matrix of signed
+// this function prints a matrix of signed douple
 void print_matrix( vector < vector < double > > M ){
   for ( const vector < double > & v : M ){
     for  ( double x : v ) cout << x << ' ';
@@ -518,7 +534,7 @@ void print_matrix( vector < vector < double > > M ){
   }
 }
 
-// this function prints a vector
+// this function prints a vector of doubles
 void print_vector( vector < double > v){
   for ( size_t i = 0; i < v.size(); i++){
     cout << v[i] << ' ';
