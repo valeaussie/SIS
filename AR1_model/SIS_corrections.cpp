@@ -9,252 +9,427 @@
 
 using namespace std;
 
-void print_matrix_sizet( vector < vector < size_t > > m );
-void print_matrix_double( vector < vector < double > > M );
-void transpose( vector < vector < size_t > > &b );
-int ar1();
+void print_matrix( vector < vector < size_t > > m );
+void print_matrix( vector < vector < double > > M );
+void print_vector( vector < double > v );
 
 
-random_device rd;
-mt19937 generator( rd () );
 
+
+//This is the code for the method:
+//Firstly I calculate the lower triangular 3-dimentional matrices called for the sampled events
+//and for the samples with substitutions for every particle.
+//I then calculate the lower triangular 3-dimensional matrices for the sampled observations
+//and for the sampled observations with substitutions
+//Finally I calculate the weights.
 
 int main(){
+
+  random_device rd;
+mt19937 generator( rd() );
+
+  ar1();
+
+  //DEFINITIONS
   
-  vector < vector < double > > sample{};
-  vector < vector < double > > new_sample{};
-  vector < vector < double > > V{};
-  vector < vector < double > > W{};
-  double n =3;
+  //define the container for the sampled events and the new sampled events
+  vector < vector < vector < double > > > sample;
+  vector < vector < vector < size_t > > > sam_obs;
+  //define the container for the sampled observations (of 0s and 1s)
+  //and the new sampled observations
+  vector < vector < vector < double > > > new_sample;
+  vector < vector < vector < size_t > > > new_sam_obs;
+  //define the containter for the unnormalised weights
+  vector < vector < vector < double > > > un_weights;
+  //define the container for the normalised weights
+  vector < vector < vector < double > > > weights;
+  //define the number of particles
+  double n = 10;
 
-  // This is the matrix S of the observations
-  // The columns are indexd as j and are for  the particles (n)
-  // The rows are indexed as i and are for the number of events (N)
-  // It is a matrix of 0s (observation) and 1s (no observation)
+  //BEGIN CORE CODE
 
-  // This is the calculations matrix Y of the simulated events.
-  // In the first raw of the matrix we have the values for f(x_1) for all the j particles
-
-  // Creating a vector y simulating from a normal distribution with mean 0
-  // and variance sigma^2/(1-phi^2)
-  // This vector will be used as a starting point to simulate all other n vectors y of lenght n
-  // that will populate the matrix Y
-  
-  vector < double > y{};
+  //Sampling from a normal distribution with mean 0
+  //and variance sigma^2/(1-phi^2) for every particle
+  //and store this in a vector clalled "vector_y0"
+  //This vector will be used as the starting point to sample all other vectors of events
+  //that will populate the matrix "sample"
+  vector < double > vector_y0;
   for ( unsigned j = 0; j < n; j++){
     normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
-    y.push_back( normalDist ( generator ) );
-  }
-  sample.push_back(y);
-  new_sample.push_back(y);
-
-  // This is the vector v of the unnormalised weights
-  vector < double > v{};
-  for ( size_t j = 0; j < n; j++) {
-    v.push_back(0);
-  }
-  V.push_back(v);
-  v.clear();
-
-  // This is the vector w of the normalised weights
-  vector < double > w{};
-  for ( size_t j = 0; j < n; j++) {
-    w.push_back(1 / n);
-  }
-  W.push_back(w);
-  w.clear();
-  
-  // Create a vector L with the first column of Z
-  // These are the observations in real life
-  vector < size_t > L;
-  for ( size_t i = 0; i < Z.size(); i++ ){
-    L.push_back(Z[i][0]);
+    vector_y0.push_back( normalDist ( generator ) );
   }
   
-  for ( size_t i = 0; i < n; i++ ){
-  }
-    
-  
-  // Sampling from a geometric distribution with p = 0.4
-  // find t_(i_j) for particle j
-  // (time of the next observation of the event that happened at time i).
-  // If t_(i_j) > N - i multiply y_i by (1 - p) and find the new y_i in the vectors Y_j.
-  // Else multiply y_i by p(1 - p) and find the new y_i.
-  // and in the vector S_(i_j) in position k_i = i + t_i, substitute the existing value with a 1.
-
- 
-  vector < vector < size_t > > matrix_ti{};
-  //size_t ki(n);
-  for ( size_t i = 1; i < N; i++ ){
-    vector < size_t > vector_ti{};
-    vector < size_t > vector_i{};
-    vector < double > temp_y{};
- 
-    for ( size_t j = 0; j < n; j++ ){
-      normal_distribution < double > normalDist( phi * y[i - 1], sigmasq );
-      temp_y.push_back( normalDist ( generator ) );
-      geometric_distribution < size_t > geoDist(p);
-      size_t ti = geoDist ( generator );
-
-      if ( ti >= N - i ){
-	temp_y[j] = temp_y[j] * (1 - p);
-      }
-
-      else {
-	temp_y[j] = temp_y[j] * p * (1 - p);
-      }
-    vector_ti.push_back(ti);
-
-    }
-    
-    matrix_ti.push_back(vector_ti);
-    sample.push_back(temp_y);
-    new_sample.push_back(temp_y);
-    y.clear();
-    y = temp_y;
-
-    // Make substitiution
-    for ( size_t j = 0; j < n; j++){
-      bool contains_value {false};
-      for ( size_t k = 0; k < L.size(); k++){
-	if ( L[k] == i ){
-	  contains_value = true;
-    	  break;
-   	}
-      }
-      if (contains_value == true ){
-    	new_sample[i][j] = X[i];
-      }
-    }
-  }
-  
-  vector < vector < size_t > > S (n, vector < size_t > (N - 1) );
-  transpose(matrix_ti);
-  
-  for ( size_t i = 0; i < matrix_ti.size(); i++ ){
-    for ( size_t j = 0; j < matrix_ti[i].size(); j++ ){
-      if ( matrix_ti[i][j] + j >= matrix_ti[i].size() ){}
-      else if ( matrix_ti[i][j] == 0 ){}
-      else {
-	S[i][ j + matrix_ti[i][j] ] = 1;
-      }
-    }
-  }
-
-  /* If i for vector L is 0 and the element S[j][i] is 1 
-     (no observation in either real life or simulation) 
-     the importance weights will be w_(i_j) = w_[(i - 1)_j] */
-  /* If i for vector L is 1 and the element S[j][i] is 0
-     (observation in real life, no observation simulated), 
-     make the substitutions putting the elements of the vector X_(k_i) in column i of Y, 
-     then calculate the weights w_i^(j) = w_[(i - 1)_j] * (1 - p)^(t_i + i - N - 1) */
-  /* If i for vector L is 1 and the element S[j][i] is 0
-     (observation in real life, no observation simulated)
-     make the substitutions putting the elements of the vector X_(k_i) in column i of Y,
-     then calculate the weights w_(i_j) = w_[(i - 1)_j] * (1 - p)^(N - t_i - i + 1) */
-  /* If i for vector L is 1 and the element S[j][i] is 1
-     (observation in real life and in the simulation) 
-     the importance weights will be w_(i_j) = w_[(i - 1)_j]*/
-  /*
-  for ( size_t i = 1; i < N; i++ ){
-    vector < double > w{};
-    
-    bool contains_value {false};
-    for ( size_t k = 0; k < L.size(); k++){
-      if ( L[k] == i ){
-	contains_value = true;
-	break;
-      }
-    }
-    for ( size_t j = 0; j < n; j++ ){
-      if ( ( S[j][i] == 0 ) && ( contains_value == false ) ){
-	V[j][i] = V[j][i - 1];
-      }
-      
-      else if ( ( S[j][i] == 1 ) && ( contains_value == true ) ){
-	
-	// Calculate the power
-	double pow1{};
-	if ( ( vector_ti[i] + i - N - 1 ) == 0){
-	  pow1 = 1;
+  //Sampling for every particle from a normal distribution centred in the previous event times phi
+  //and with variance sigma^2, filling the container "sample".
+  //Making the substitiution every time I have an observation in real life,
+  //filling the container for the new updated events "new_sample".
+  for ( size_t j = 0; j < n; j++ ){
+    vector < vector < double > > matrix_sample;
+    vector < vector < double > > matrix_new_sample;
+    vector < double > row_matrix_sample;
+    vector < double > row_matrix_new_sample;
+    double y;
+    y = vector_y0[j];
+    row_matrix_sample.push_back(y);
+    row_matrix_new_sample.push_back(y);
+    matrix_sample.push_back( row_matrix_sample );
+    matrix_new_sample.push_back( row_matrix_new_sample );
+    for ( size_t i = 1; i < N; i++ ){
+      vector < size_t > row_obs;
+      row_obs = obs[i];
+      normal_distribution < double > normalDist( phi * row_matrix_new_sample[i - 1], sigmasq );
+      double gen = normalDist ( generator );
+      row_matrix_new_sample.push_back( gen );
+      row_matrix_sample.push_back( gen );
+      for (size_t k = 0; k < i; k++){
+	if (row_obs[k] != 0 ){
+	  row_matrix_sample[k] = row_matrix_new_sample[k];
 	}
-	else if ( (vector_ti[i] + i - N - 1) == 1){
-	  pow1 = (1 - p);
+      }
+      for (size_t k = 0; k < i + 1; k++){
+	if (row_obs[k] != 0 ){
+	  row_matrix_new_sample[k] = X[k];
 	}
+      }
+      matrix_sample.push_back( row_matrix_sample );
+      matrix_new_sample.push_back( row_matrix_new_sample );
+    }
+    row_matrix_sample.clear();
+    row_matrix_new_sample.clear();
+    sample.push_back( matrix_sample );
+    new_sample.push_back( matrix_new_sample );
+    matrix_sample.clear();
+    matrix_new_sample.clear();
+  }
+  
+  //Sampling for every particle from a bernoulli distribution with probability p
+  //filling the container of the sampled observations "sam_obs".
+  //Substituting a0 with a 1 every time I have an observation in real life,
+  //filling the matrix of updated sampled observations "new_sam_obs"
+  for ( size_t j = 0; j < n; j++ ){
+    vector < vector < size_t > > matrix_obs;
+    vector < vector < size_t > > matrix_new_obs;
+    vector < size_t > row_matrix_obs;
+    vector < size_t > row_matrix_new_obs;
+    for ( size_t i = 0; i < N; i++ ){
+      vector < size_t > row_obs;
+      row_obs = obs[i];
+      bernoulli_distribution BerDist(p);
+      double gen = BerDist ( generator );
+      row_matrix_new_obs.push_back( gen );
+      row_matrix_obs.push_back( gen );
+      for (size_t k = 0; k < i; k++){
+	if (row_obs[k] != 0 ){
+	  row_matrix_obs[k] = row_matrix_new_obs[k];
+	}
+      }
+      for (size_t k = 0; k < i + 1; k++){
+	if (row_obs[k] != 0 ){
+	  row_matrix_new_obs[k] = 1;
+	}
+      }
+      matrix_obs.push_back( row_matrix_obs );
+      matrix_new_obs.push_back( row_matrix_new_obs );
+    }
+    row_matrix_obs.clear();
+    row_matrix_new_obs.clear();
+    sam_obs.push_back( matrix_obs );
+    new_sam_obs.push_back( matrix_new_obs );
+    matrix_obs.clear();
+    matrix_new_obs.clear();
+  }
+
+  //Finding the unnormalised weights (using log then exponentiating)
+  //filling the container "un_weights"
+  //This is an important part of the code, should be always sure it is correct.
+  const double constant = ( 1 / ( 2 * sigmasq ) );
+  for ( size_t j = 0; j < n; j++ ){
+    vector < vector < double > > matrix_un_weights;
+    vector < double > temp_vec{1};
+    matrix_un_weights.push_back( temp_vec );
+    vector < vector < double > > temp_matrix_sample;
+    temp_matrix_sample = sample[j];
+    vector < vector < size_t > > temp_matrix_obs;
+    temp_matrix_obs = sam_obs[j];
+    vector < vector < double > > temp_matrix_new_sample;
+    temp_matrix_new_sample = new_sample[j];
+    vector < vector < size_t > > temp_matrix_new_obs;
+    temp_matrix_new_obs = new_sam_obs[j];
+    vector < double > vector_un_weights;
+    double log_weight{};
+    for ( size_t i = 1; i < N; i++ ){
+      vector_un_weights.push_back(1);
+      vector < double > vector_log_weights;
+      vector_log_weights.push_back(1);
+      vector < double > row_sample;
+      row_sample = temp_matrix_sample[i];
+      vector < size_t > row_obs;
+      row_obs = temp_matrix_obs[i];
+      vector < double > row_new_sample;
+      row_new_sample = temp_matrix_new_sample[i];
+      vector < size_t > row_new_obs;
+      row_new_obs = temp_matrix_new_obs[i];
+      double ys;
+      double xs;
+      for ( size_t k = 1; k < row_sample.size(); k++){
+	if ( row_new_sample[k-1] == row_sample[k-1] && row_new_sample[k] == row_sample[k] ){}
 	else {
-	  pow1 = pow ( (1 - p), ( vector_ti[i] + i - N - 1 ) );
+	  ys = - (row_new_sample[k] - phi * row_new_sample[k-1]) * (row_new_sample[k] - phi * row_new_sample[k-1]);
+	  xs = (row_sample[k] - phi * row_sample[k-1]) * (row_sample[k] - phi * row_sample[k-1]);
+	  log_weight = constant * ( ys + xs );
+	  vector_log_weights.push_back(log_weight);
 	}
-	
-	V[j][i] = V[j][i - 1] * pow1 ;
+	if ( row_new_obs[k] == row_obs[k] ){}
+	else if ( row_new_obs[k] == 1 && row_obs[k] == 0 )
+	  { ys = ys * (1 - p ) ; xs = xs * p; }  
+	else { ys = ys * p ; xs = xs * ( 1 - p ); }
+	double un_weights;
+	double sum = accumulate(vector_log_weights.begin(), vector_log_weights.end(), 0.0);
+	un_weights = exp(sum);
+	vector_un_weights.push_back(un_weights);
       }
-      
-      else if ( ( S[j][i] == 1 ) && ( contains_value == false ) ){
-
-	// Calculate the power
-	double pow2{};
-	if ( (N - vector_ti[i] - i + 1) == 0){
-	  pow2 = 1;
-	}
-	else if ( (N - vector_ti[i] - i + 1) == 1){
-	  pow2 = (1 - p);
-	}
-	else {
-	  pow2 = pow ( (1 - p), ( N - vector_ti[i] - i + 1 ) );
-	}
-	
-	V[j][i] = V[j][i - 1] * pow2 ;
-      }
-      else if ( ( S[j][i] == 0 ) && ( contains_value == true ) ){
-	V[j][i] = V[j][i - 1];
-      }
+      matrix_un_weights.push_back(vector_un_weights);
+      vector_un_weights.clear();
     }
+    un_weights.push_back( matrix_un_weights );
   }
 
+  /* //Sanity checks printings for the first particle
+  //(can be done on any particle changing the value of "part_num")
+  int part_num = 0;
+  //Printing one matrix of the 3 dimensional vector "sample"
+  cout << "printing one of the sample matrix" << endl;
+  print_matrix( sample[part_num] );
+  //Printing one matrix the 3 dimensional vector "new_sample"
+  cout << "printing one of the new_sample matrix" << endl;
+  print_matrix( new_sample[part_num] );
+  //Printing one matrix of the 3 dimensional vector "sam_obs"
+  cout << "printing one of the sam_obs matrix " << endl;
+  print_matrix( sam_obs[part_num] );
+  //Printing one matrix the 3 dimensional vector "new_sam_obs"
+  cout << "printing one of the new_sam_obs matrix" << endl;
+  print_matrix( new_sam_obs[part_num] );
+  //Printing the matrix of observation in real life "obs"
+  cout << "printing the matrix of observations" << endl;
+  print_matrix( obs );
+  //Printing one matrix of the 3 dimensional vector un_weights of the unnormalised weights
+  cout << "printing one of the un_weights matrix" << endl;
+  print_matrix( un_weights[part_num]); */
 
-
-  // normalise the importance weights and put it in matrix W
-  for ( size_t i = 1; i < N; i++ ){
-    vector < double > column_vector{};
-    double sum{};
-    for ( size_t k = 0; k < n; k++ ){
-      column_vector.push_back(V[k][i]);
+  //Creating a container of 0s of the correct size (lower triangular NxNxn) called "weights"
+  //for the normalised weights
+  vector < vector < double > > matrix_w;
+  vector < double > vector_w;
+  for ( size_t j = 0; j < n; j++ ){
+    double elem;
+    for ( size_t i = 0; i < N; i++ ){
+      for (size_t k = 0; k < i + 1; k++ ){
+	elem = 0;  
+	vector_w.push_back( elem );
+      }   
+      matrix_w.push_back( vector_w );
+      vector_w.clear();
     }
-    for ( auto & n : column_vector)
-      sum += n;
-    for ( size_t j = 0; j < n; j++ ){
-    W[j][i] = V[j][i] / sum;
-    }
+    weights.push_back( matrix_w );
+    matrix_w.clear();
   }
-  
-  // calculate the expectation E[y_i] = sum for j from 2 to N y_(i_j) W_(i_j)
-  vector < double > E{};
+
+  //Normalising the importance weights and puting them in matrix Weights
   for ( size_t i = 0; i < N; i++ ){
-    vector < double > moltiplication_vector{};
-    for ( size_t j = 0; j < n; j++ ){
-      moltiplication_vector.push_back( Y[j][i] * W[j][i] );
+    for (size_t k = 0; k < i + 1; k++){
+      double sum{0};
+      for (size_t l = 0; l < n; l++ ){
+	sum += un_weights[l][i][k];
+      }
+      for (size_t j = 0; j < n; j++ ){
+	weights[j][i][k] = un_weights[j][i][k] / sum;
+      }
     }
-    double sum{};
-    for ( auto & n : moltiplication_vector)
+  }
+
+  /* //sanity checks printing some of the matrices for the last (current) time N for all particle
+  
+  //Finding the matrix of the unnormalised weights for the last time "weights_last_time"
+  vector < vector < double > > un_weights_last_time;
+  for ( size_t i = 0; i < n; i++ ){
+    vector < vector < double > > temp_matrix;
+    temp_matrix = un_weights[i];
+    vector < double > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    un_weights_last_time.push_back(temp_vector);
+  }
+  
+  cout << "printing matrix un_weights_last_time" << endl;
+  print_matrix(un_weights_last_time);
+
+  //Finding the matrix of the new simulated events for the last time "new_sample_last_time"
+  vector < vector < double > > new_sample_last_time;
+  for ( size_t i = 0; i < n; i++ ){
+    vector < vector < double > > temp_matrix;
+    temp_matrix = new_sample[i];
+    vector < double > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    new_sample_last_time.push_back(temp_vector);
+  }
+  cout << "printing matrix new_sample_last_time" << endl;
+  print_matrix(new_sample_last_time); */
+
+  
+
+  //Creating a container of 0s of the correct size (lower triangular NxNxn) 
+  //called "sam_times_weights" 
+  vector < vector < vector < double > > > sam_times_weights;
+  vector < vector < double > > matrix_sam_wei;
+  vector < double > vector_sam_wei;
+  for ( size_t j = 0; j < n; j++ ){
+    double elem;
+    for ( size_t i = 0; i < N; i++ ){
+      for (size_t k = 0; k < i + 1; k++ ){
+	elem = 0;  
+	vector_sam_wei.push_back( elem );
+      }   
+      matrix_sam_wei.push_back( vector_sam_wei );
+      vector_sam_wei.clear();
+    }
+    sam_times_weights.push_back( matrix_sam_wei );
+    matrix_sam_wei.clear();
+  }
+
+  //Calculating the 3 dimensional matrix sam_time_weights for simulation and weights
+  //multiplying respectively simulated events and weights
+  for ( size_t j = 0; j < n; j++ ){
+    for ( size_t i = 0; i < N; i++ ){
+      for ( size_t k = 0; k < i + 1; k++ ){
+ 	sam_times_weights[j][i][k] = new_sample[j][i][k] * weights[j][i][k];
+      }
+    }
+  }
+
+  //Finding the matrix of the new simulated events multiplied by
+  //the weights for the last (current ) time "s_times_w_last_time"
+  vector < vector < double > > s_times_w_last_time;
+  for ( size_t i = 0; i < n; i++ ){
+    vector < vector < double > > temp_matrix;
+    temp_matrix = sam_times_weights[i];
+    vector < double > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    s_times_w_last_time.push_back(temp_vector);
+  }
+
+  //Calculating the expectation for every time E[y_i] at the last (current) time N
+  vector < double > E;
+  vector < vector < double > > multiplication_matrix;
+  for ( size_t i = 0; i < n; i++ ){
+    vector < double > multiplication_vector;
+    for ( size_t k = 0; k < N; k++ ){
+      multiplication_vector.push_back( s_times_w_last_time[k][i] );
+    }
+    double sum;
+    for ( auto & n : multiplication_vector)
       sum += n;
     E.push_back( sum );
+    sum = 0;
   }
+  
+  cout << "printing vector of expectations and the vector of events " << endl;
+  print_vector(E);
+  print_vector(X);
 
-  // Create a dat file with the values of E, this is useful to graph with gnuplot
-    std::ofstream outFile2( "./vector_E.dat" );
-  outFile2 << endl;
+  //END CORE CODE
+  
+
+  //FROM HERE: I create all the dat files for the plots
+  
+  //Create a dat file with the values of E
+  ofstream outFile3( "./vector_E.dat" );
+  outFile3 << endl;
   for ( double n : E ){
-    outFile2 << n << endl;
+    outFile3 << n << endl;
   }
-  outFile2.close();
+  outFile3.close();
 
-
-  for ( size_t i = 0; i < N; i++ ){
-    cout << E[i] << endl;
+    
+  //Populating "sam_last_time" with new samples for the last time
+  vector < vector < double > > sam_last_time;
+  for ( size_t i = 0; i < n; i++ ){
+    vector < vector < double > > temp_matrix;
+    temp_matrix = new_sample[i];
+    vector < double > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    sam_last_time.push_back(temp_vector);
+  }
+ 
+  //Creating a dat file with the values of the sam_last_time
+  //to craete boxplots
+  ofstream outFile4( "./sam_last_time.dat" );
+  outFile4 << endl;
+  for ( size_t lin = 0; lin < n; lin++ ){
+    for ( size_t col = 0; col < N; col++ ){
+      outFile4 << sam_last_time[lin][col] << " ";
+    }
+    outFile4 << endl;
+  }
+  outFile4.close();
+    
+  //Finding the matrix of the weights for the last time "weights_last_time"
+  vector < vector < double > > weights_last_time;
+  for ( size_t i = 0; i < n; i++ ){
+    vector < vector < double > > temp_matrix;
+    temp_matrix = weights[i];
+    vector < double > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    weights_last_time.push_back(temp_vector);
   }
 
-  */
+  //Creating a dat file with the values of the W_N
+  //to create boxplots
+  ofstream outFile5( "./weights_last_time.dat" );
+  outFile5 << endl;
+  for ( size_t lin = 0; lin < n; lin++ ){
+    for ( size_t col = 0; col < N; col++ ){
+      outFile5 << weights_last_time[lin][col] << " ";
+    }
+    outFile5 << endl;
+  }
+  outFile5.close();
   
   return 0;
+}
+
+
+
+//functions definitions
+
+//this function prints a matrix of unsigned size_t
+void print_matrix ( vector < vector < size_t > > m ){
+  for ( const vector < size_t > v : m ){
+    for  ( size_t x : v ) cout << x << ' ';
+    cout << endl;
+  }
+}
+
+//this function prints a matrix of signed doubles
+void print_matrix ( vector < vector < double > > M ){
+  for ( const vector < double > v : M ){
+    for  ( double x : v ) cout << x << ' ';
+    cout << endl;
+  }
+}
+
+//this function prints a vector of doubles
+void print_vector ( vector < double > v ){
+  for ( const double x : v ) cout << x << ' ';
+  cout << endl;
 }
 
 
