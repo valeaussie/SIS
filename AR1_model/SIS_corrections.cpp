@@ -26,7 +26,7 @@ void print_vector( vector < double > v );
 int main(){
 
   random_device rd;
-mt19937 generator( rd() );
+  mt19937 generator( rd() );
 
   ar1();
 
@@ -44,7 +44,7 @@ mt19937 generator( rd() );
   //define the container for the normalised weights
   vector < vector < vector < double > > > weights;
   //define the number of particles
-  double n = 10;
+  double n = 100;
 
   //BEGIN CORE CODE
 
@@ -247,6 +247,35 @@ mt19937 generator( rd() );
     }
   }
 
+   //Resampling
+  for (size_t l = 0; l < N; l++ ){
+    vector < vector < double > > weights_each_time;
+    for ( size_t i = 0; i < n; i++ ){
+      vector < vector < double > > temp_matrix;
+      temp_matrix = weights[i];
+      vector < double > temp_vector;
+      for ( size_t j = 0; j < N; j++ ){
+	temp_vector = temp_matrix[l];
+      }
+      weights_each_time.push_back(temp_vector);
+    }
+    for ( size_t i = 0; i < l + 1; i++ ){
+      vector < double > column_vec;
+      for ( size_t k = 0; k < n; k++ ){
+	column_vec.push_back( weights_each_time[k][i] );
+      }
+      vector < double > new_temp;
+      discrete_distribution< int > discrete( column_vec.begin(), column_vec.end() );
+      for ( size_t k = 0; k < n; k++ ){
+	new_temp.push_back( new_sample[discrete(generator)][l][i] );
+      }
+      for ( size_t j = 0; j < n; j++ ){
+	new_sample[j][l][i] = new_temp[j];
+      }
+      new_temp.clear();
+    }
+  }
+
   /* //sanity checks printing some of the matrices for the last (current) time N for all particle
   
   //Finding the matrix of the unnormalised weights for the last time "weights_last_time"
@@ -390,6 +419,8 @@ mt19937 generator( rd() );
     }
     weights_last_time.push_back(temp_vector);
   }
+
+  print_matrix(weights_last_time);
 
   //Creating a dat file with the values of the W_N
   //to create boxplots

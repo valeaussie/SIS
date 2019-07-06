@@ -5,6 +5,7 @@
 #include <map>
 #include <algorithm>
 #include <math.h>
+#include <tuple>
 
 using namespace std;
 
@@ -25,7 +26,7 @@ phi = 0.5, p = 0.4 */
 const double sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.2;
-const double N = 10;
+const double N = 5;
 vector < double > X;
 vector < vector < size_t > > obs;
 vector < size_t > vect_obs_N;
@@ -33,6 +34,8 @@ vector < size_t > vect_obs_N;
 void print_matrix( vector < vector < size_t > > m );
 void print_matrix( vector < vector < double > > M );
 void print_vector( vector < double > v );
+void print_vector( vector < int > V );
+
 
 
 random_device rd;
@@ -129,7 +132,7 @@ int main(){
   //define the container for the normalised weights
   vector < vector < vector < double > > > weights;
   //define the number of particles
-  double n = 20;
+  double n = 10;
 
   //Sampling from a normal distribution with mean 0
   //and variance sigma^2/(1-phi^2) for every particle
@@ -221,12 +224,41 @@ int main(){
     matrix_obs.clear();
     matrix_new_obs.clear();
   }
+
+  /* from here few sanity checks to print the relevant matrices for the last (present) time */
+  //Sanity check populating and printing "sam_obs_last_time" with the sampled observations for the last time
+  vector < vector < size_t > > sam_obs_last_time;
+  for ( size_t i = 0; i < n; i++ ){
+    vector < vector < size_t > > temp_matrix;
+    temp_matrix = sam_obs[i];
+    vector < size_t > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    sam_obs_last_time.push_back(temp_vector);
+  }
+  cout << "printing matrix sam_obs for the last time" << endl;
+  print_matrix(sam_obs_last_time);
+
+  //Sanity check populating and printing "new_sam_obs_last_time" with new sampled observations for the last time
+  vector < vector < size_t > > new_sam_obs_last_time;
+  for ( size_t i = 0; i < n; i++ ){
+    vector < vector < size_t > > temp_matrix;
+    temp_matrix = new_sam_obs[i];
+    vector < size_t > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    new_sam_obs_last_time.push_back(temp_vector);
+  }
+  cout << "printing matrix new_sam_obs for the last time" << endl;
+  print_matrix(new_sam_obs_last_time);
   
   //Sanity check populating and printing "sam_last_time" with new samples for the last time
   vector < vector < double > > sam_last_time;
   for ( size_t i = 0; i < n; i++ ){
     vector < vector < double > > temp_matrix;
-    temp_matrix = new_sample[i];
+    temp_matrix = sample[i];
     vector < double > temp_vector;
     for ( size_t j = 0; j < N; j++ ){
       temp_vector = temp_matrix[N-1];
@@ -235,6 +267,22 @@ int main(){
   }
   cout << "printing matrix sam_last_time" << endl;
   print_matrix(sam_last_time);
+
+  //Sanity check populating and printing "new_sam_last_time" with new samples for the last time
+  vector < vector < double > > new_sam_last_time;
+  for ( size_t i = 0; i < n; i++ ){
+    vector < vector < double > > temp_matrix;
+    temp_matrix = new_sample[i];
+    vector < double > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    new_sam_last_time.push_back(temp_vector);
+  }
+  cout << "printing matrix new_sam_last_time" << endl;
+  print_matrix(new_sam_last_time);
+
+
   
   //Finding the unnormalised weights (using log then exponentiating)
   //filling the container "un_weights"
@@ -341,35 +389,57 @@ int main(){
     }
   }
 
-  /*
-  // Resampling
-  vector < double > temp_vec;
-  vector < vector < double > > temp_matrix;
-  vector < vecotr < vector < double > > > temp_2matrix;
-  double tresh = n/2;
-  for ( size_t i = 0; i < N; i++ ){
-    for (size_t k = 0; k < i + 1; k++){
-      double ess{0};
-      double sumsq{0};
-      for (size_t l = 0; l < n; l++ ){
-	// calculate the effective sample size, called ess
-	sumsq += weights[l][i][k] *  weights[l][i][k];
-	ess = 1 / sumsq;
+  /* we are reasampling even the particles that have the same values
+     I am not sure this is very efficient, we should be able to check
+     when the parrticles are identical */
+  //Resampling
+  for (size_t l = 0; l < N; l++ ){
+    vector < vector < double > > weights_each_time;
+    for ( size_t i = 0; i < n; i++ ){
+      vector < vector < double > > temp_matrix;
+      temp_matrix = weights[i];
+      vector < double > temp_vector;
+      for ( size_t j = 0; j < N; j++ ){
+	temp_vector = temp_matrix[l];
       }
-      
-      // draw particles from the current particle set with probabilities
-      // proportional to their weights and replace the current particles
-      //for (size_t j = 0; j < n; j++ ){
-      //	if (ess < tresh){
-      //	  weights[j][i][k];
-      //	}
-      // }
+      weights_each_time.push_back(temp_vector);
     }
-    } */
+    for ( size_t i = 0; i < l + 1; i++ ){
+      vector < double > column_vec;
+      for ( size_t k = 0; k < n; k++ ){
+	column_vec.push_back( weights_each_time[k][i] );
+      }
+      vector < double > new_temp;
+      discrete_distribution< int > discrete( column_vec.begin(), column_vec.end() );
+      for ( size_t k = 0; k < n; k++ ){
+	new_temp.push_back( new_sample[discrete(generator)][l][i] );
+      }
+      for ( size_t j = 0; j < n; j++ ){
+	new_sample[j][l][i] = new_temp[j];
+      }
+      new_temp.clear();
+    }
+  }
+  vector < vector < double > > new_sample_last_time2;
+  for ( size_t i = 0; i < n; i++ ){
+    vector < vector < double > > temp_matrix;
+    temp_matrix = new_sample[i];
+    vector < double > temp_vector;
+    for ( size_t j = 0; j < N; j++ ){
+      temp_vector = temp_matrix[N-1];
+    }
+    new_sample_last_time2.push_back(temp_vector);
+  }
+  cout << "printing matrix new_sample_last_time2" << endl;
+  print_matrix(new_sample_last_time2);
+  cout << "printing matrix new_sample_last_time" << endl;
+  print_matrix(new_sam_last_time);
+
+
 
   //sanity checks for the weights printing the last (current) time N for all particle
   
-  //Finding the matrix of the unnormalised weights for the last time "weights_last_time"
+  //Finding the matrix of the unnormalised weights for the last time "un_weights_last_time"
   vector < vector < double > > un_weights_last_time;
   for ( size_t i = 0; i < n; i++ ){
     vector < vector < double > > temp_matrix;
@@ -509,5 +579,11 @@ void print_matrix ( vector < vector < double > > M ){
 //this function prints a vector of doubles
 void print_vector ( vector < double > v ){
   for ( const double x : v ) cout << x << ' ';
+  cout << endl;
+}
+
+//this function prints a vector of integers
+void print_vector ( vector < int > v ){
+  for ( const int x : v ) cout << x << ' ';
   cout << endl;
 }
