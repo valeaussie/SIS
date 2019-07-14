@@ -25,62 +25,60 @@ phi = 0.5, p = 0.4 */
 
 const double sigmasq = 1;
 const float phi = 0.5;
-const float p = 0.2;
+const float p = 0.3;
 const double N = 5;
 vector < double > X;
 vector < vector < size_t > > obs;
 vector < size_t > vect_obs_N;
 
-void print_matrix( vector < vector < size_t > > m );
-void print_matrix( vector < vector < double > > M );
-void print_vector( vector < double > v );
-void print_vector( vector < int > V );
+void print_matrix(vector < vector < size_t > > m);
+void print_matrix(vector < vector < double > > M);
+void print_vector(vector < double > v);
+void print_vector(vector < int > V);
+void print_vector(vector < size_t > V);
 
 
 
 random_device rd;
-mt19937 generator( rd() );
+mt19937 generator(rd());
 
 
 int main(){
 
   //Sampling from a normal distribution. Put the values in a vector "X"
-  normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
-  X.push_back( normalDist ( generator ) );
+  normal_distribution < double > normalDist(0, sigmasq / (1 - phi * phi));
+  X.push_back(normalDist(generator));
   
-  for ( size_t i = 1; i < N; i++ ){  
-    normal_distribution < double > normalDist( phi * X[i - 1], sigmasq );
-    X.push_back( normalDist ( generator ) );
+  for (size_t i = 1; i < N; i++){  
+    normal_distribution < double > normalDist(phi * X[i - 1], sigmasq);
+    X.push_back( normalDist(generator));
   }  
 
   //Sampling from a geometric distribution the values ti
   //and create a vector called "vector_ti".
   vector < double > vector_ti;
-  for ( size_t i = 0; i < N; i++ ){
+  for (size_t i = 0; i < N; i++){
     geometric_distribution <> geoDist(p);
-    size_t ti = geoDist ( generator );
+    size_t ti = geoDist (generator);
     vector_ti.push_back(ti);
   }
   
   
   //Populating the matrix of observations callled "obs"
   //then creating a vector "vect_obs_N" for the final time
-  for ( size_t j = 0; j < N; j++ ){
+  for (size_t j = 0; j < N; j++){
     vector < size_t > tempvec{};
-    for ( size_t i = 0; i < j + 1; i++ ){
-      if ( vector_ti[i] <= j - i ){
+    for (size_t i = 0; i < j + 1; i++){
+      if (vector_ti[i] <= j - i){
 	tempvec.push_back(1);
       }
       else  {
 	tempvec.push_back(0);
       }
     }
-    obs.push_back( tempvec );
+    obs.push_back(tempvec);
   }
   vect_obs_N = obs [N - 1];
-
-  cout << "printing the matrix of observations" << endl;
-  print_matrix(obs);
   
   /*  cout << "vector x \n";
   print_vector(X);
@@ -91,9 +89,9 @@ int main(){
 
   //Creating a dat file with the values of the vector of the observed events "vect_obs_N"
   //at the current time N calling it "real_data.dat"
-  ofstream outFile1( "./real_data.dat" );
+  ofstream outFile1("./real_data.dat");
   outFile1 << endl;
-  for ( double n : vect_obs_N ){
+  for (double n : vect_obs_N){
     outFile1 << n << endl;
   }
   outFile1.close();
@@ -104,9 +102,9 @@ int main(){
 
   //Creating a dat file with the values of X
   //calling it "vector_X.dat""
-  std::ofstream outFile2( "./vector_X.dat" );
+  std::ofstream outFile2("./vector_X.dat");
   outFile2 << endl;
-  for ( double n : X ){
+  for (double n : X){
     outFile2 << n << endl;
   }
   outFile2.close();
@@ -140,16 +138,16 @@ int main(){
   //This vector will be used as the starting point to sample all other vectors of events
   //that will populate the matrix "sample"
   vector < double > vector_y0;
-  for ( unsigned j = 0; j < n; j++){
-    normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
-    vector_y0.push_back( normalDist ( generator ) );
+  for (unsigned j = 0; j < n; j++){
+    normal_distribution < double > normalDist(0, sigmasq / (1 - phi * phi));
+    vector_y0.push_back(normalDist (generator));
   }
   
   //Sampling for every particle from a normal distribution centred in the previous event times phi
   //and with variance sigma^2, filling the container "sample".
   //Making the substitiution every time I have an observation in real life,
   //filling the container for the new updated events "new_sample".
-  for ( size_t j = 0; j < n; j++ ){
+  for (size_t j = 0; j < n; j++){
     vector < vector < double > > matrix_sample;
     vector < vector < double > > matrix_new_sample;
     vector < double > row_matrix_sample;
@@ -158,32 +156,32 @@ int main(){
     y = vector_y0[j];
     row_matrix_sample.push_back(y);
     row_matrix_new_sample.push_back(y);
-    matrix_sample.push_back( row_matrix_sample );
-    matrix_new_sample.push_back( row_matrix_new_sample );
-    for ( size_t i = 1; i < N; i++ ){
+    matrix_sample.push_back(row_matrix_sample);
+    matrix_new_sample.push_back(row_matrix_new_sample);
+    for (size_t i = 1; i < N; i++){
       vector < size_t > row_obs;
       row_obs = obs[i];
       normal_distribution < double > normalDist( phi * row_matrix_new_sample[i - 1], sigmasq );
-      double gen = normalDist ( generator );
-      row_matrix_new_sample.push_back( gen );
-      row_matrix_sample.push_back( gen );
+      double gen = normalDist (generator);
+      row_matrix_new_sample.push_back(gen);
+      row_matrix_sample.push_back(gen);
       for (size_t k = 0; k < i; k++){
-	if (row_obs[k] != 0 ){
+	if (row_obs[k] == 1){
 	  row_matrix_sample[k] = row_matrix_new_sample[k];
 	}
       }
       for (size_t k = 0; k < i + 1; k++){
-	if (row_obs[k] != 0 ){
+	if (row_obs[k] == 1){
 	  row_matrix_new_sample[k] = X[k];
 	}
       }
-      matrix_sample.push_back( row_matrix_sample );
-      matrix_new_sample.push_back( row_matrix_new_sample );
+      matrix_sample.push_back(row_matrix_sample);
+      matrix_new_sample.push_back(row_matrix_new_sample);
     }
     row_matrix_sample.clear();
     row_matrix_new_sample.clear();
-    sample.push_back( matrix_sample );
-    new_sample.push_back( matrix_new_sample );
+    sample.push_back(matrix_sample);
+    new_sample.push_back(matrix_new_sample);
     matrix_sample.clear();
     matrix_new_sample.clear();
   }
@@ -192,35 +190,48 @@ int main(){
   //filling the container of the sampled observations "sam_obs".
   //Substituting a0 with a 1 every time I have an observation in real life,
   //filling the matrix of updated sampled observations "new_sam_obs"
-  for ( size_t j = 0; j < n; j++ ){
+  for (size_t j = 0; j < n; j++){
     vector < vector < size_t > > matrix_obs;
     vector < vector < size_t > > matrix_new_obs;
     vector < size_t > row_matrix_obs;
     vector < size_t > row_matrix_new_obs;
-    for ( size_t i = 0; i < N; i++ ){
+    for (size_t i = 0; i < N; i++){
       vector < size_t > row_obs;
       row_obs = obs[i];
       bernoulli_distribution BerDist(p);
-      double gen = BerDist ( generator );
-      row_matrix_new_obs.push_back( gen );
-      row_matrix_obs.push_back( gen );
-      for (size_t k = 0; k < i; k++){
-	if (row_obs[k] != 0 ){
-	  row_matrix_obs[k] = row_matrix_new_obs[k];
-	}
-      }
-      for (size_t k = 0; k < i + 1; k++){
-	if (row_obs[k] != 0 ){
+      double gen = BerDist (generator);
+      row_matrix_obs.push_back(0);
+      row_matrix_new_obs.push_back(0);
+      for (size_t k = 0; k < i+1; k++){
+	if (row_obs[k] == 1){
 	  row_matrix_new_obs[k] = 1;
 	}
+	else if (row_obs[k] == 0){
+	  row_matrix_obs[k] = gen;
+	}
       }
-      matrix_obs.push_back( row_matrix_obs );
-      matrix_new_obs.push_back( row_matrix_new_obs );
+      for (size_t k = 0; k < i+1; k++){
+	if (row_obs[k] == 0 && row_matrix_obs[k] == 1){
+	  row_matrix_new_obs[k] = 0;
+	}
+	else if (row_obs[k] == 0 && row_matrix_obs[k] == 0){
+	  row_matrix_new_obs[k] = 0;
+	}
+      }
+      matrix_obs.push_back(row_matrix_obs);
+      matrix_new_obs.push_back(row_matrix_new_obs);
+    }
+    for (size_t i = 0; i < N-1; i++){
+      for (size_t k = 0; k < i+1; k++){
+	if (matrix_new_obs[i][k] == 1){
+	matrix_obs[i+1][k] = matrix_new_obs[i][k];
+	}
+      }
     }
     row_matrix_obs.clear();
     row_matrix_new_obs.clear();
-    sam_obs.push_back( matrix_obs );
-    new_sam_obs.push_back( matrix_new_obs );
+    sam_obs.push_back(matrix_obs);
+    new_sam_obs.push_back(matrix_new_obs);
     matrix_obs.clear();
     matrix_new_obs.clear();
   }
@@ -228,11 +239,11 @@ int main(){
   /* from here few sanity checks to print the relevant matrices for the last (present) time */
   //Sanity check populating and printing "sam_obs_last_time" with the sampled observations for the last time
   vector < vector < size_t > > sam_obs_last_time;
-  for ( size_t i = 0; i < n; i++ ){
+  for (size_t i = 0; i < n; i++){
     vector < vector < size_t > > temp_matrix;
     temp_matrix = sam_obs[i];
     vector < size_t > temp_vector;
-    for ( size_t j = 0; j < N; j++ ){
+    for (size_t j = 0; j < N; j++){
       temp_vector = temp_matrix[N-1];
     }
     sam_obs_last_time.push_back(temp_vector);
@@ -242,11 +253,11 @@ int main(){
 
   //Sanity check populating and printing "new_sam_obs_last_time" with new sampled observations for the last time
   vector < vector < size_t > > new_sam_obs_last_time;
-  for ( size_t i = 0; i < n; i++ ){
+  for (size_t i = 0; i < n; i++){
     vector < vector < size_t > > temp_matrix;
     temp_matrix = new_sam_obs[i];
     vector < size_t > temp_vector;
-    for ( size_t j = 0; j < N; j++ ){
+    for (size_t j = 0; j < N; j++){
       temp_vector = temp_matrix[N-1];
     }
     new_sam_obs_last_time.push_back(temp_vector);
@@ -256,11 +267,11 @@ int main(){
   
   //Sanity check populating and printing "sam_last_time" with new samples for the last time
   vector < vector < double > > sam_last_time;
-  for ( size_t i = 0; i < n; i++ ){
+  for (size_t i = 0; i < n; i++){
     vector < vector < double > > temp_matrix;
     temp_matrix = sample[i];
     vector < double > temp_vector;
-    for ( size_t j = 0; j < N; j++ ){
+    for (size_t j = 0; j < N; j++){
       temp_vector = temp_matrix[N-1];
     }
     sam_last_time.push_back(temp_vector);
@@ -270,11 +281,11 @@ int main(){
 
   //Sanity check populating and printing "new_sam_last_time" with new samples for the last time
   vector < vector < double > > new_sam_last_time;
-  for ( size_t i = 0; i < n; i++ ){
+  for (size_t i = 0; i < n; i++){
     vector < vector < double > > temp_matrix;
     temp_matrix = new_sample[i];
     vector < double > temp_vector;
-    for ( size_t j = 0; j < N; j++ ){
+    for (size_t j = 0; j < N; j++){
       temp_vector = temp_matrix[N-1];
     }
     new_sam_last_time.push_back(temp_vector);
@@ -282,16 +293,13 @@ int main(){
   cout << "printing matrix new_sam_last_time" << endl;
   print_matrix(new_sam_last_time);
 
-
-  
   //Finding the unnormalised weights (using log then exponentiating)
   //filling the container "un_weights"
   //This is an important part of the code, should be always sure it is correct.
+  vector < vector < double > > matrix_un_weights;
+  vector < double > vector_un_weights;
   const double constant = ( 1 / ( 2 * sigmasq ) );
   for ( size_t j = 0; j < n; j++ ){
-    vector < vector < double > > matrix_un_weights;
-    vector < double > temp_vec{1};
-    matrix_un_weights.push_back( temp_vec );
     vector < vector < double > > temp_matrix_sample;
     temp_matrix_sample = sample[j];
     vector < vector < size_t > > temp_matrix_obs;
@@ -300,10 +308,10 @@ int main(){
     temp_matrix_new_sample = new_sample[j];
     vector < vector < size_t > > temp_matrix_new_obs;
     temp_matrix_new_obs = new_sam_obs[j];
-    vector < double > vector_un_weights;
-    double log_weight{};
-    for ( size_t i = 1; i < N; i++ ){
-      vector_un_weights.push_back(1);
+    vector < double > vector_w{1};
+    double log_weight;
+    double w;
+    for (size_t i = 1; i < N; i++){
       vector < double > vector_log_weights;
       vector_log_weights.push_back(1);
       vector < double > row_sample;
@@ -316,28 +324,32 @@ int main(){
       row_new_obs = temp_matrix_new_obs[i];
       double ys;
       double xs;
-      for ( size_t k = 1; k < row_sample.size(); k++){
-	if ( row_new_sample[k-1] == row_sample[k-1] && row_new_sample[k] == row_sample[k] ){}
+      for (size_t k = 1; k < row_sample.size(); k++){
+	if (row_new_sample[k-1] == row_sample[k-1] && row_new_sample[k] == row_sample[k]){}
 	else {
 	  ys = - (row_new_sample[k] - phi * row_new_sample[k-1]) * (row_new_sample[k] - phi * row_new_sample[k-1]);
 	  xs = (row_sample[k] - phi * row_sample[k-1]) * (row_sample[k] - phi * row_sample[k-1]);
-	  log_weight = constant * ( ys + xs );
-	  vector_log_weights.push_back(log_weight);
 	}
-	if ( row_new_obs[k] == row_obs[k] ){}
-	else if ( row_new_obs[k] == 1 && row_obs[k] == 0 ){ ys = ys * (1 - p ) ; xs = xs * p; }
-	else { ys = ys * p ; xs = xs * ( 1 -p ); }
-      double un_weights;
-      double sum = accumulate(vector_log_weights.begin(), vector_log_weights.end(), 0.0);
-      un_weights = exp(sum);
-      vector_un_weights.push_back(un_weights);
+	if (row_new_obs[k] == row_obs[k]){}
+	else if (row_new_obs[k] == 1 && row_obs[k] == 0){ys = ys * (1 - p) ; xs = xs * p;}
+	else {ys = ys * p ; xs = xs * (1 -p); }
+	log_weight = constant * ( ys + xs );
+	vector_log_weights.push_back(log_weight);
       }
-    matrix_un_weights.push_back(vector_un_weights);
-    vector_un_weights.clear();
+      double sum = accumulate(vector_log_weights.begin(), vector_log_weights.end(), 0.0);
+      w = exp(sum);
+      vector_w.push_back(w);
+      }
+    for (size_t i = 0; i < N; i++){
+      for (size_t k = 0; k < i+1; k++){
+	vector_un_weights.push_back(vector_w[k]);
+      }
+      matrix_un_weights.push_back(vector_un_weights);
+      vector_un_weights.clear();
     }
-    un_weights.push_back( matrix_un_weights );
+    un_weights.push_back(matrix_un_weights);
+    matrix_un_weights.clear();
   }
-
   
   //some sanity check printing for the first particle
   //(can be done on any particle changing the value of "part_num")
@@ -348,6 +360,8 @@ int main(){
   //Printing one matrix the 3 dimensional vector "new_sample"
   cout << "printing one of the new_sample matrix" << endl;
   print_matrix( new_sample[part_num] );
+  cout << "printing the matrix of observations" << endl;
+  print_matrix(obs);
   //Printing one matrix of the 3 dimensional vector "sam_obs"
   cout << "printing one of the sam_obs matrix " << endl;
   print_matrix( sam_obs[part_num] );
@@ -389,10 +403,7 @@ int main(){
     }
   }
 
-  /* we are reasampling even the particles that have the same values
-     I am not sure this is very efficient, we should be able to check
-     when the parrticles are identical */
-  //Resampling
+  //Resampling (no effective sample size)
   for (size_t l = 0; l < N; l++ ){
     vector < vector < double > > weights_each_time;
     for ( size_t i = 0; i < n; i++ ){
@@ -584,6 +595,12 @@ void print_vector ( vector < double > v ){
 
 //this function prints a vector of integers
 void print_vector ( vector < int > v ){
+  for ( const int x : v ) cout << x << ' ';
+  cout << endl;
+}
+
+//this function prints a vector of integers
+void print_vector ( vector < size_t > v ){
   for ( const int x : v ) cout << x << ' ';
   cout << endl;
 }
