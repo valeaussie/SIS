@@ -36,7 +36,7 @@ int ar1(){
   random_device rd;
   mt19937 generator( rd());
 
-  //Sampling from a normal distribution. Put the values in a vector "X"
+  //Sampling from a normal distribution simulate the AR(1) model. Put the values in a vector "X"
   normal_distribution < double > normalDist( 0, sigmasq / ( 1 - phi * phi ) );
   X.push_back( normalDist ( generator ) );
   
@@ -45,8 +45,9 @@ int ar1(){
     X.push_back( normalDist ( generator ) );
   }
 
-  //Sampling from a geometric distribution the values ti
-  //and create a vector called "vector_ti".
+  //Sampling from a geometric distribution to get the values of the number of Bernoulli trials
+  //needed to get an observation for each event.
+  //Put the values in a vector called "vector_ti".
   vector < double > vector_ti;
   for ( size_t i = 0; i < N; i++ ){
     geometric_distribution <> geoDist(p);
@@ -54,8 +55,10 @@ int ar1(){
     vector_ti.push_back(ti);
   }
 
-  //Populating the matrix of observations callled "obs"
-  //then creating a vector "vect_obs_N" for the final time
+  //Populating the matrix of observations of "0" and "1" callled "obs"
+  //using the previusly calculated "vector_ti".
+  //Each line of the vector is the state of the observations at the corresponing time.
+  //Populate the vector "vect_obs_N" for the final time
   for ( size_t j = 0; j < N; j++ ){
     vector < size_t > tempvec;
     for ( size_t i = 0; i < j + 1; i++ ){
