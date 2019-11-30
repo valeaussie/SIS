@@ -108,6 +108,7 @@ int main(){
     outFile2 << n << endl;
   }
   outFile2.close();
+
   
   //This is the code for the method:
   //Firstly I calculate the lower triangular 3-dimentional matrices called for the sampled events
@@ -116,13 +117,12 @@ int main(){
   //and for the sampled observations with substitutions
   //Finally I calculate the weights.
 
-  //DEFINITIONS
+//DEFINITIONS
   
-  //define the container for the sampled events and the new sampled events
+  //define the container for the sampled events and the sampled observations (0s and 1s)
   vector < vector < vector < double > > > sample;
   vector < vector < vector < size_t > > > sam_obs;
-  //define the container for the sampled observations (of 0s and 1s)
-  //and the new sampled observations
+  //define the container for the new sampled events and the new sampled observations (0s and 1s)
   vector < vector < vector < size_t > > > new_sam_obs;
   vector < vector < vector < double > > > new_sample;
   //define the containter for the unnormalised weights
@@ -130,7 +130,7 @@ int main(){
   //define the container for the normalised weights
   vector < vector < vector < double > > > weights;
   //define the number of particles
-  double n = 10;
+  double n = 1000;
 
   //Sampling from a normal distribution with mean 0
   //and variance sigma^2/(1-phi^2) for every particle
@@ -293,27 +293,83 @@ int main(){
   cout << "printing matrix new_sam_last_time" << endl;
   print_matrix(new_sam_last_time);
 
+  //Transposing 
+  vector < vector < vector < double > > > tsample;
+  vector < vector < double > > matrix_tsample;
+  vector < double > vector_tsample;
+  vector < vector < vector < size_t > > > tsam_obs;
+  vector < vector < size_t > > matrix_tsam_obs;
+  vector < size_t > vector_tsam_obs;
+  vector < vector < vector < size_t > > > tnew_sam_obs;
+  vector < vector < size_t > > matrix_tnew_sam_obs;
+  vector < size_t > vector_tnew_sam_obs;
+  vector < vector < vector < double > > > tnew_sam;
+  vector < vector < double > > matrix_tnew_sam;
+  vector < double > vector_tnew_sam;
+  for ( size_t j = 0; j < N; j++ ){
+    double sam{0};
+    double sam_ob{0};
+    double new_sam{0};
+    double new_sam_ob{0};
+    for ( size_t i = 0; i < n; i++ ){
+      for (size_t k = 0; k < j+1; k++ ){
+	vector_tsample.push_back( sam );
+	vector_tsam_obs.push_back( sam_ob );
+	vector_tnew_sam_obs.push_back( new_sam );
+	vector_tnew_sam.push_back( new_sam_ob );
+      }   
+      matrix_tsample.push_back( vector_tsample );
+      vector_tsample.clear();
+      matrix_tsam_obs.push_back( vector_tsam_obs );
+      vector_tsam_obs.clear();
+      matrix_tnew_sam_obs.push_back( vector_tnew_sam_obs );
+      vector_tnew_sam_obs.clear();
+      matrix_tnew_sam.push_back( vector_tnew_sam );
+      vector_tnew_sam.clear();
+    }
+    tsample.push_back( matrix_tsample );
+    matrix_tsample.clear();
+    tsam_obs.push_back( matrix_tsam_obs );
+    matrix_tsam_obs.clear();
+    tnew_sam_obs.push_back( matrix_tnew_sam_obs );
+    matrix_tnew_sam_obs.clear();
+    tnew_sam.push_back( matrix_tnew_sam );
+    matrix_tnew_sam.clear();
+  }
+  for ( size_t j = 0; j < N; j++ ){
+    for (size_t i = 0; i < n; i++ ){
+      for (size_t k = 0; k < j+1; k++ ){
+	tsample[j][i][k]=sample[i][j][k];
+	tsam_obs[j][i][k]=sam_obs[i][j][k];
+	tnew_sam_obs[j][i][k]=new_sam_obs[i][j][k];
+	tnew_sam[j][i][k]=new_sample[i][j][k];
+      }
+    }
+  }
+  cout << "tsample" <<endl;
+  print_matrix(tsample[9]);
+  cout << "tnewsample" <<endl;
+  print_matrix(tnew_sam[9]);
+
   //Finding the unnormalised weights (using log then exponentiating)
   //filling the container "un_weights"
   //This is an important part of the code, should be always sure it is correct.
+
+  //vector < double > vector_un_weights;
   vector < vector < double > > matrix_un_weights;
-  vector < double > vector_un_weights;
-  const double constant = ( 1 / ( 2 * sigmasq ) );
-  for ( size_t j = 0; j < n; j++ ){
+  for ( size_t j = 0; j < N; j++ ){
     vector < vector < double > > temp_matrix_sample;
-    temp_matrix_sample = sample[j];
+    temp_matrix_sample = tsample[j];
     vector < vector < size_t > > temp_matrix_obs;
-    temp_matrix_obs = sam_obs[j];
+    temp_matrix_obs = tsam_obs[j];
     vector < vector < double > > temp_matrix_new_sample;
-    temp_matrix_new_sample = new_sample[j];
+    temp_matrix_new_sample = tnew_sam[j];
     vector < vector < size_t > > temp_matrix_new_obs;
-    temp_matrix_new_obs = new_sam_obs[j];
-    vector < double > vector_w{1};
-    double log_weight;
-    double w;
-    for (size_t i = 1; i < N; i++){
-      vector < double > vector_log_weights;
-      vector_log_weights.push_back(1);
+    temp_matrix_new_obs = tnew_sam_obs[j];
+    for (size_t i = 0; i < n; i++){
+      vector < double > vector_w;
+      vector < double > vector_log_num;
+      vector < double > vector_log_den;
       vector < double > row_sample;
       row_sample = temp_matrix_sample[i];
       vector < size_t > row_obs;
@@ -322,52 +378,69 @@ int main(){
       row_new_sample = temp_matrix_new_sample[i];
       vector < size_t > row_new_obs;
       row_new_obs = temp_matrix_new_obs[i];
-      double ys;
-      double xs;
-      for (size_t k = 1; k < row_sample.size(); k++){
-	if (row_new_sample[k-1] == row_sample[k-1] && row_new_sample[k] == row_sample[k]){}
+      double w{1};
+      for (size_t k = 0; k < j+1; k++){
+	double num{0};
+	double den{0};
+	double exp_sum_num{1};
+	double exp_sum_den{1};
+	if (k==0){w=1;}
+	else if (((row_new_sample[k] == row_sample[k]) && (row_new_sample[k-1] == row_sample[k-1]))){}
 	else {
-	  ys = - (row_new_sample[k] - phi * row_new_sample[k-1]) * (row_new_sample[k] - phi * row_new_sample[k-1]);
-	  xs = (row_sample[k] - phi * row_sample[k-1]) * (row_sample[k] - phi * row_sample[k-1]);
+	  num = ((row_new_sample[k] - phi * row_new_sample[k-1]) * (row_new_sample[k] - phi * row_new_sample[k-1]));
+	  den = ((row_sample[k] - phi * row_sample[k-1]) * (row_sample[k] - phi * row_sample[k-1]));
 	}
-	if (row_new_obs[k] == row_obs[k]){}
-	else if (row_new_obs[k] == 1 && row_obs[k] == 0){ys = ys * (1 - p) ; xs = xs * p;}
-	else {ys = ys * p ; xs = xs * (1 -p); }
-	log_weight = constant * ( ys + xs );
-	vector_log_weights.push_back(log_weight);
+	if (k==0){}
+	else if (row_new_obs[k] == row_obs[k]){}
+	else if (row_new_obs[k] == 1 && row_obs[k] == 0){ num = num + log(p) ; den = den + log(1-p); }
+	else { num = num + log(1-p) ; den = den + log((p)); }
+	vector_log_num.push_back(num);
+	vector_log_den.push_back(den);
+	double sum_num = accumulate(vector_log_num.begin(), vector_log_num.end(), 0.0);
+	double sum_den = accumulate(vector_log_den.begin(), vector_log_den.end(), 0.0);
+	exp_sum_num = exp(sum_num);
+	exp_sum_den = exp(sum_den);
+	if (exp_sum_den != 0 ){w = exp_sum_num/exp_sum_den;}
+	vector_w.push_back(w);
       }
-      double sum = accumulate(vector_log_weights.begin(), vector_log_weights.end(), 0.0);
-      w = exp(sum);
-      vector_w.push_back(w);
-      }
-    for (size_t i = 0; i < N; i++){
-      for (size_t k = 0; k < i+1; k++){
-	vector_un_weights.push_back(vector_w[k]);
-      }
-      matrix_un_weights.push_back(vector_un_weights);
-      vector_un_weights.clear();
+      matrix_un_weights.push_back(vector_w);
+      vector_w.clear();
     }
     un_weights.push_back(matrix_un_weights);
     matrix_un_weights.clear();
   }
+
+  
+  //Transposing againthe matrix of the weights
+  vector < vector < vector < double > > > tweights;
+  vector < vector < double > > matrix_tweights;
+  vector < double > vector_tweights;
+  for ( size_t j = 0; j < n; j++ ){
+    double twe{0};
+    for ( size_t i = 0; i < N; i++ ){
+      for (size_t k = 0; k < i+1; k++ ){ 
+	vector_tweights.push_back( twe );
+      }   
+      matrix_tweights.push_back( vector_tweights );
+      vector_tweights.clear();
+    }
+    tweights.push_back( matrix_tweights );
+    matrix_tweights.clear();
+    }
+  for ( size_t j = 0; j < n; j++ ){
+    for (size_t i = 0; i < N; i++ ){
+      for (size_t k = 0; k < i+1; k++ ){
+	tweights[j][i][k]=un_weights[i][j][k];
+      }
+    }
+  }
+  cout << "tweights" <<endl;
+  print_matrix(tweights[0]);
+  
   
   //some sanity check printing for the first particle
   //(can be done on any particle changing the value of "part_num")
   int part_num = 0;
-  //Printing one matrix of the 3 dimensional vector "sample"
-  cout << "printing one of the sample matrix" << endl;
-  print_matrix( sample[part_num] );
-  //Printing one matrix the 3 dimensional vector "new_sample"
-  cout << "printing one of the new_sample matrix" << endl;
-  print_matrix( new_sample[part_num] );
-  cout << "printing the matrix of observations" << endl;
-  print_matrix(obs);
-  //Printing one matrix of the 3 dimensional vector "sam_obs"
-  cout << "printing one of the sam_obs matrix " << endl;
-  print_matrix( sam_obs[part_num] );
-  //Printing one matrix the 3 dimensional vector "new_sam_obs"
-  cout << "printing one of the new_sam_obs matrix" << endl;
-  print_matrix( new_sam_obs[part_num] );
   //Printing one matrix of the 3 dimensional vector un_weights of the unnormalised weights
   cout << "printing one of the un_weights matrix" << endl;
   print_matrix( un_weights[part_num]);
@@ -390,20 +463,21 @@ int main(){
     matrix_w.clear();
   }
 
+
   //Normalising the importance weights and puting them in matrix Weights
   for ( size_t i = 0; i < N; i++ ){
     for (size_t k = 0; k < i + 1; k++){
       double sum{0};
       for (size_t l = 0; l < n; l++ ){
-	sum += un_weights[l][i][k];
+	sum += tweights[l][i][k];
       }
       for (size_t j = 0; j < n; j++ ){
-	weights[j][i][k] = un_weights[j][i][k] / sum;
+	weights[j][i][k] = tweights[j][i][k] / sum;
       }
     }
   }
 
-  //Resampling (no effective sample size)
+  //Resampling (every time)
   for (size_t l = 0; l < N; l++ ){
     vector < vector < double > > weights_each_time;
     for ( size_t i = 0; i < n; i++ ){
@@ -454,7 +528,7 @@ int main(){
   vector < vector < double > > un_weights_last_time;
   for ( size_t i = 0; i < n; i++ ){
     vector < vector < double > > temp_matrix;
-    temp_matrix = un_weights[i];
+    temp_matrix = tweights[i];
     vector < double > temp_vector;
     for ( size_t j = 0; j < N; j++ ){
       temp_vector = temp_matrix[N-1];
@@ -477,67 +551,9 @@ int main(){
   cout << "printing matrix weights_last_time" << endl;
   print_matrix(weights_last_time);
 
-  //Creating a container of 0s of the correct size (lower triangular NxNxn) 
-  //called "sam_times_weights" multiplying respectively simulated events and weights
-  vector < vector < vector < double > > > sam_times_weights;
-  vector < vector < double > > matrix_sam_wei;
-  vector < double > vector_sam_wei;
-  for ( size_t j = 0; j < n; j++ ){
-    double elem;
-    for ( size_t i = 0; i < N; i++ ){
-      for (size_t k = 0; k < i + 1; k++ ){
-	elem = 0;  
-	vector_sam_wei.push_back( elem );
-      }   
-      matrix_sam_wei.push_back( vector_sam_wei );
-      vector_sam_wei.clear();
-    }
-    sam_times_weights.push_back( matrix_sam_wei );
-    matrix_sam_wei.clear();
-  }
-  
-  //calculating the 3 dimensional matrix sim_time_weights for simulation and weights
-  for ( size_t j = 0; j < n; j++ ){
-    for ( size_t i = 0; i < N; i++ ){
-      for ( size_t k = 0; k < i + 1; k++ ){
- 	sam_times_weights[j][i][k] = new_sample[j][i][k] * weights[j][i][k];
-      }
-    }
-  }
 
-  //calculating the expectation E[y_i] at the last (current) time N
-  vector < double > E;
-  vector < vector < double > > multiplication_matrix;
-  for ( size_t j = 0; j < n; j++ ){
-    multiplication_matrix.push_back( sam_times_weights[j][N - 1] );
-  }
-  for ( size_t i = 0; i < N; i++ ){
-    vector < double > multiplication_vector;
-    for ( size_t j = 0; j < n; j++ ){
-      multiplication_vector.push_back( multiplication_matrix[j][i] );
-    }
-    double sum;
-    for ( auto & n : multiplication_vector)
-      sum += n;
-    E.push_back( sum );
-  }
-  cout << "printing vector of expectations " << endl;
-  print_vector(E);
-  print_vector(X);
+  //Create all the dat files for the plots
 
-
-
-  
-
-  //from here I create all the dat files for the plots
-  
-  //Create a dat file with the values of E
-  ofstream outFile3( "./vector_E.dat" );
-  outFile3 << endl;
-  for ( double n : E ){
-    outFile3 << n << endl;
-  }
-  outFile3.close();
 
   //Create a dat file with the values of the sam_last_time
   //to craete boxplots
@@ -562,6 +578,18 @@ int main(){
     outFile5 << endl;
   }
   outFile5.close();
+
+  //Create a dat file with the resampled particles
+  //to craete boxplots
+  ofstream outFile6( "./resample.dat" );
+  outFile6 << endl;
+  for ( size_t lin = 0; lin < n; lin++ ){
+    for ( size_t col = 0; col < N; col++ ){
+      outFile6 << new_sample_last_time2[lin][col] << " ";
+    }
+    outFile6 << endl;
+  }
+  outFile6.close();
   
   return 0;
 }

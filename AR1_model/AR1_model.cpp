@@ -12,7 +12,7 @@ using namespace std;
 const double sigmasq = 1;
 const float phi = 0.5;
 const float p = 0.2;
-const double N = 10;
+const double N = 20;
 
 vector < double > X;
 vector < vector < size_t > > obs;

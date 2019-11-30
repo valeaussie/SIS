@@ -23,6 +23,11 @@ int main(){
 
   ar1();
 
+  /* This is the code to find the analytic estimates of expectation and variance
+     of the missing values in the AR(1) model. These estimates will then be used as 
+     gold standard to evaluate our method.*/
+  
+  
   for ( size_t j = 0; j < N; j++) {cout << vect_obs_N[j] << endl;}
   cout << "end" << endl;
   //case 1: I have one observation at the beginning and one at the end 
@@ -81,7 +86,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2/den;
+	    variance = sigmasq*sum1*sum2 / den*den;
 	    expect = (numexp1 + numexp2) / den;
 	    expectations.push_back(expect);
 	    variances.push_back(variance);
@@ -94,6 +99,22 @@ int main(){
 	else {continue;}
       }
     }
+    
+    //Create a dat file with the values of the Expectations
+    ofstream outFile7( "./AR1_interp_exp.dat" );
+    outFile7 << endl;
+    for ( double n : expectations ){
+      outFile7 << n << endl;
+    }
+    outFile7.close();
+    
+    //Create a dat file with the values of the Variances
+    ofstream outFile8( "./AR1_interp_var.dat" );
+    outFile8 << endl;
+    for ( double n : variances ){
+      outFile8 << n << endl;
+    }
+    outFile8.close();
   }
   
   //case 2: I have one observation at the beginning and none at the end 
@@ -159,7 +180,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2/den;
+	    variance = sigmasq*sum1*sum2 / den*den;
 	    expect = (numexp1 + numexp2) / den;
 	    expectations.push_back(expect);
 	    variances.push_back(variance);
@@ -192,6 +213,22 @@ int main(){
     // end of the estimations of the last missing points.
     print_vector(expectations);
     print_vector(variances);
+    
+    //Create a dat file with the values of the Expectations
+    ofstream outFile7( "./AR1_interp_exp.dat" );
+    outFile7 << endl;
+    for ( double n : expectations ){
+      outFile7 << n << endl;
+    }
+    outFile7.close();
+    
+    //Create a dat file with the values of the Variances
+    ofstream outFile8( "./AR1_interp_var.dat" );
+    outFile8 << endl;
+    for ( double n : variances ){
+      outFile8 << n << endl;
+    }
+    outFile8.close();
   }
   
   //case 3: I have no observation at the beginning but one at the end
@@ -277,7 +314,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2/den;
+	    variance = sigmasq*sum1*sum2 / den*den;
 	    expect = (numexp1 + numexp2) / den;
 	    expectations.push_back(expect);
 	    variances.push_back(variance);
@@ -290,6 +327,22 @@ int main(){
 	else {continue;}
       }
     }
+
+    //Create a dat file with the values of the Expectations
+    ofstream outFile7( "./AR1_interp_exp.dat" );
+    outFile7 << endl;
+    for ( double n : expectations ){
+      outFile7 << n << endl;
+    }
+    outFile7.close();
+    
+    //Create a dat file with the values of the Variances
+    ofstream outFile8( "./AR1_interp_var.dat" );
+    outFile8 << endl;
+    for ( double n : variances ){
+      outFile8 << n << endl;
+    }
+    outFile8.close();
   }
 
   //case 4: I have no observation at the beginning or at the end 
@@ -389,7 +442,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2/den;
+	    variance = sigmasq*sum1*sum2 / den*den;
 	    cout << "numexp2 " << numexp2 << endl;
 	    cout << "sum2 " << sum2 << endl;
 	    expect = (numexp1 + numexp2) / den;
@@ -425,6 +478,23 @@ int main(){
     }  
     print_vector(expectations);
     print_vector(variances);
+
+    //Create a dat file with the values of the Expectations
+    ofstream outFile7( "./AR1_interp_exp.dat" );
+    outFile7 << endl;
+    for ( double n : expectations ){
+      outFile7 << n << endl;
+    }
+    outFile7.close();
+    
+    //Create a dat file with the values of the Variances
+    ofstream outFile8( "./AR1_interp_var.dat" );
+    outFile8 << endl;
+    for ( double n : variances ){
+      outFile8 << n << endl;
+    }
+    outFile8.close();
+    
   }
   
   return 0;
