@@ -324,7 +324,7 @@ int main(){
   }
 
   
-  //Transposing againthe matrix of the weights
+  //Transposing back the matrix of the weights
   vector < vector < vector < double > > > tweights;
   vector < vector < double > > matrix_tweights;
   vector < double > vector_tweights;
@@ -512,7 +512,7 @@ int main(){
   
   
   for ( size_t j = 0; j < N; j++) {cout << vect_obs_N[j] << endl;}
-  cout << "end" << endl;
+
   //case 1: I have one observation at the beginning and one at the end 
   if ( (vect_obs_N[0] == 1) && (vect_obs_N[N-1] == 1) ) {
     vector < size_t > missing{};
@@ -569,7 +569,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2 / den*den;
+	    variance = sigmasq*sum1*sum2 / den;
 	    expect = (numexp1 + numexp2) / den;
 	    expectations.push_back(expect);
 	    variances.push_back(variance);
@@ -581,16 +581,14 @@ int main(){
 	}
 	else {continue;}
       }
-    }
-    
+    }    
     //Create a dat file with the values of the Expectations
     ofstream outFile7( "./AR1_interp_exp.dat" );
     outFile7 << endl;
     for ( double n : expectations ){
       outFile7 << n << endl;
     }
-    outFile7.close();
-    
+    outFile7.close(); 
     //Create a dat file with the values of the Variances
     ofstream outFile8( "./AR1_interp_var.dat" );
     outFile8 << endl;
@@ -663,7 +661,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2 / den*den;
+	    variance = sigmasq*sum1*sum2 / den;
 	    expect = (numexp1 + numexp2) / den;
 	    expectations.push_back(expect);
 	    variances.push_back(variance);
@@ -693,18 +691,14 @@ int main(){
     variance = sum*sigmasq;
     variances.push_back(variance);
     }
-    // end of the estimations of the last missing points.
-    print_vector(expectations);
-    print_vector(variances);
-    
+    // end of the estimations of the last missing points.   
     //Create a dat file with the values of the Expectations
     ofstream outFile7( "./AR1_interp_exp.dat" );
     outFile7 << endl;
     for ( double n : expectations ){
       outFile7 << n << endl;
     }
-    outFile7.close();
-    
+    outFile7.close();   
     //Create a dat file with the values of the Variances
     ofstream outFile8( "./AR1_interp_var.dat" );
     outFile8 << endl;
@@ -797,7 +791,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2 / den*den;
+	    variance = sigmasq*sum1*sum2 / den;
 	    expect = (numexp1 + numexp2) / den;
 	    expectations.push_back(expect);
 	    variances.push_back(variance);
@@ -810,7 +804,6 @@ int main(){
 	else {continue;}
       }
     }
-
     //Create a dat file with the values of the Expectations
     ofstream outFile7( "./AR1_interp_exp.dat" );
     outFile7 << endl;
@@ -925,7 +918,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2 / den*den;
+	    variance = sigmasq*sum1*sum2 / den;
 	    cout << "numexp2 " << numexp2 << endl;
 	    cout << "sum2 " << sum2 << endl;
 	    expect = (numexp1 + numexp2) / den;
@@ -940,8 +933,6 @@ int main(){
 	else {continue;}
       }
     }
-    print_vector(expectations);
-    print_vector(variances);
     // this is the estimation for the last missing points. It is needed because
     // I don't know the value of the last time
     for (size_t i = 0; i < N-lastvalue; i++) {
