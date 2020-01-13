@@ -27,9 +27,6 @@ int main(){
      of the missing values in the AR(1) model. These estimates will then be used as 
      gold standard to evaluate our method.*/
   
-  
-  for ( size_t j = 0; j < N; j++) {cout << vect_obs_N[j] << endl;}
-  cout << "end" << endl;
   //case 1: I have one observation at the beginning and one at the end 
   if ( (vect_obs_N[0] == 1) && (vect_obs_N[N-1] == 1) ) {
     vector < size_t > missing{};
@@ -86,7 +83,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2 / den*den;
+	    variance = sigmasq*sum1*sum2 / den;
 	    expect = (numexp1 + numexp2) / den;
 	    expectations.push_back(expect);
 	    variances.push_back(variance);
@@ -180,7 +177,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2 / den*den;
+	    variance = sigmasq*sum1*sum2 / den;
 	    expect = (numexp1 + numexp2) / den;
 	    expectations.push_back(expect);
 	    variances.push_back(variance);
@@ -211,8 +208,6 @@ int main(){
     variances.push_back(variance);
     }
     // end of the estimations of the last missing points.
-    print_vector(expectations);
-    print_vector(variances);
     
     //Create a dat file with the values of the Expectations
     ofstream outFile7( "./AR1_interp_exp.dat" );
@@ -314,7 +309,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2 / den*den;
+	    variance = sigmasq*sum1*sum2 / den;
 	    expect = (numexp1 + numexp2) / den;
 	    expectations.push_back(expect);
 	    variances.push_back(variance);
@@ -442,7 +437,7 @@ int main(){
 	      sum2 += n;
 	    numexp2 = sum2 * pow(phi, (t-tau+1)) * X[tau-1];
 	    vecsum2.clear();
-	    variance = sigmasq*sum1*sum2 / den*den;
+	    variance = sigmasq*sum1*sum2 / den;
 	    cout << "numexp2 " << numexp2 << endl;
 	    cout << "sum2 " << sum2 << endl;
 	    expect = (numexp1 + numexp2) / den;
@@ -457,8 +452,6 @@ int main(){
 	else {continue;}
       }
     }
-    print_vector(expectations);
-    print_vector(variances);
     // this is the estimation for the last missing points. It is needed because
     // I don't know the value of the last time
     for (size_t i = 0; i < N-lastvalue; i++) {
@@ -476,9 +469,6 @@ int main(){
     variance = sum*sigmasq;
     variances.push_back(variance);
     }  
-    print_vector(expectations);
-    print_vector(variances);
-
     //Create a dat file with the values of the Expectations
     ofstream outFile7( "./AR1_interp_exp.dat" );
     outFile7 << endl;

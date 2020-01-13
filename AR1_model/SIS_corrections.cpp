@@ -37,6 +37,7 @@ int main(){
   //define the container for the new sampled events and the new sampled observations (0s and 1s)
   vector < vector < vector < size_t > > > new_sam_obs;
   vector < vector < vector < double > > > new_sample;
+  vector < vector < vector < double > > > resampled;
   //define the containter for the unnormalised weights
   vector < vector < vector < double > > > un_weights;
   //define the container for the normalised weights
@@ -67,7 +68,10 @@ int main(){
     double y;
     y = vector_y0[j];
     row_matrix_sample.push_back(y);
-    row_matrix_new_sample.push_back(y);
+    if ( obs[0][0] == 1 ){
+      row_matrix_new_sample.push_back(X[0]);
+    }
+    else { row_matrix_new_sample.push_back(y); }
     matrix_sample.push_back(row_matrix_sample);
     matrix_new_sample.push_back(row_matrix_new_sample);
     for (size_t i = 1; i < N; i++){
@@ -148,150 +152,27 @@ int main(){
     matrix_new_obs.clear();
   }
 
-  /* from here few sanity checks to print the relevant matrices for the last (present) time */
-  //Sanity check populating and printing "sam_obs_last_time" with the sampled observations for the last time
-  vector < vector < size_t > > sam_obs_last_time;
-  for (size_t i = 0; i < n; i++){
-    vector < vector < size_t > > temp_matrix;
-    temp_matrix = sam_obs[i];
-    vector < size_t > temp_vector;
-    for (size_t j = 0; j < N; j++){
-      temp_vector = temp_matrix[N-1];
-    }
-    sam_obs_last_time.push_back(temp_vector);
-  }
-  cout << "printing matrix sam_obs for the last time" << endl;
-  print_matrix(sam_obs_last_time);
-
-  //Sanity check populating and printing "new_sam_obs_last_time" with new sampled observations for the last time
-  vector < vector < size_t > > new_sam_obs_last_time;
-  for (size_t i = 0; i < n; i++){
-    vector < vector < size_t > > temp_matrix;
-    temp_matrix = new_sam_obs[i];
-    vector < size_t > temp_vector;
-    for (size_t j = 0; j < N; j++){
-      temp_vector = temp_matrix[N-1];
-    }
-    new_sam_obs_last_time.push_back(temp_vector);
-  }
-  cout << "printing matrix new_sam_obs for the last time" << endl;
-  print_matrix(new_sam_obs_last_time);
-  
-  //Sanity check populating and printing "sam_last_time" with new samples for the last time
-  vector < vector < double > > sam_last_time;
-  for (size_t i = 0; i < n; i++){
-    vector < vector < double > > temp_matrix;
-    temp_matrix = sample[i];
-    vector < double > temp_vector;
-    for (size_t j = 0; j < N; j++){
-      temp_vector = temp_matrix[N-1];
-    }
-    sam_last_time.push_back(temp_vector);
-  }
-  cout << "printing matrix sam_last_time" << endl;
-  print_matrix(sam_last_time);
-
-  //Sanity check populating and printing "new_sam_last_time" with new samples for the last time
-  vector < vector < double > > new_sam_last_time;
-  for (size_t i = 0; i < n; i++){
-    vector < vector < double > > temp_matrix;
-    temp_matrix = new_sample[i];
-    vector < double > temp_vector;
-    for (size_t j = 0; j < N; j++){
-      temp_vector = temp_matrix[N-1];
-    }
-    new_sam_last_time.push_back(temp_vector);
-  }
-  cout << "printing matrix new_sam_last_time" << endl;
-  print_matrix(new_sam_last_time);
-
-  //Transposing 
-  vector < vector < vector < double > > > tsample;
-  vector < vector < double > > matrix_tsample;
-  vector < double > vector_tsample;
-  vector < vector < vector < size_t > > > tsam_obs;
-  vector < vector < size_t > > matrix_tsam_obs;
-  vector < size_t > vector_tsam_obs;
-  vector < vector < vector < size_t > > > tnew_sam_obs;
-  vector < vector < size_t > > matrix_tnew_sam_obs;
-  vector < size_t > vector_tnew_sam_obs;
-  vector < vector < vector < double > > > tnew_sam;
-  vector < vector < double > > matrix_tnew_sam;
-  vector < double > vector_tnew_sam;
-  for ( size_t j = 0; j < N; j++ ){
-    double sam{0};
-    double sam_ob{0};
-    double new_sam{0};
-    double new_sam_ob{0};
-    for ( size_t i = 0; i < n; i++ ){
-      for (size_t k = 0; k < j+1; k++ ){
-	vector_tsample.push_back( sam );
-	vector_tsam_obs.push_back( sam_ob );
-	vector_tnew_sam_obs.push_back( new_sam );
-	vector_tnew_sam.push_back( new_sam_ob );
-      }   
-      matrix_tsample.push_back( vector_tsample );
-      vector_tsample.clear();
-      matrix_tsam_obs.push_back( vector_tsam_obs );
-      vector_tsam_obs.clear();
-      matrix_tnew_sam_obs.push_back( vector_tnew_sam_obs );
-      vector_tnew_sam_obs.clear();
-      matrix_tnew_sam.push_back( vector_tnew_sam );
-      vector_tnew_sam.clear();
-    }
-    tsample.push_back( matrix_tsample );
-    matrix_tsample.clear();
-    tsam_obs.push_back( matrix_tsam_obs );
-    matrix_tsam_obs.clear();
-    tnew_sam_obs.push_back( matrix_tnew_sam_obs );
-    matrix_tnew_sam_obs.clear();
-    tnew_sam.push_back( matrix_tnew_sam );
-    matrix_tnew_sam.clear();
-  }
-  for ( size_t j = 0; j < N; j++ ){
-    for (size_t i = 0; i < n; i++ ){
-      for (size_t k = 0; k < j+1; k++ ){
-	tsample[j][i][k]=sample[i][j][k];
-	tsam_obs[j][i][k]=sam_obs[i][j][k];
-	tnew_sam_obs[j][i][k]=new_sam_obs[i][j][k];
-	tnew_sam[j][i][k]=new_sample[i][j][k];
-      }
-    }
-  }
-  cout << "tsample" <<endl;
-  print_matrix(tsample[9]);
-  cout << "tnewsample" <<endl;
-  print_matrix(tnew_sam[9]);
-
   //Finding the unnormalised weights (using log then exponentiating)
-  //filling the container "un_weights"
+  //filling the container "un_weights".
   //This is an important part of the code, should be always sure it is correct.
 
-  //vector < double > vector_un_weights;
-  vector < vector < double > > matrix_un_weights;
+  vector < vector < vector < double > > > tresampled;
   for ( size_t j = 0; j < N; j++ ){
-    vector < vector < double > > temp_matrix_sample;
-    temp_matrix_sample = tsample[j];
-    vector < vector < size_t > > temp_matrix_obs;
-    temp_matrix_obs = tsam_obs[j];
-    vector < vector < double > > temp_matrix_new_sample;
-    temp_matrix_new_sample = tnew_sam[j];
-    vector < vector < size_t > > temp_matrix_new_obs;
-    temp_matrix_new_obs = tnew_sam_obs[j];
-    for (size_t i = 0; i < n; i++){
-      vector < double > vector_w;
+    vector < vector < double > > matrix_un_weights;
+    vector < double > vector_w;
+    for ( size_t i = 0; i < n; i++ ){
       vector < double > vector_log_num;
       vector < double > vector_log_den;
       vector < double > row_sample;
-      row_sample = temp_matrix_sample[i];
+      row_sample = sample[i][j];
       vector < size_t > row_obs;
-      row_obs = temp_matrix_obs[i];
+      row_obs = sam_obs[i][j];
       vector < double > row_new_sample;
-      row_new_sample = temp_matrix_new_sample[i];
+      row_new_sample = new_sample[i][j];
       vector < size_t > row_new_obs;
-      row_new_obs = temp_matrix_new_obs[i];
-      double w{1};
+      row_new_obs = new_sam_obs[i][j];
       for (size_t k = 0; k < j+1; k++){
+	double w{1};
 	double num{0};
 	double den{0};
 	double exp_sum_num{1};
@@ -318,190 +199,58 @@ int main(){
       matrix_un_weights.push_back(vector_w);
       vector_w.clear();
     }
-    un_weights.push_back(matrix_un_weights);
-    matrix_un_weights.clear();
-  }
 
-  
-  //Transposing againthe matrix of the weights
-  vector < vector < vector < double > > > tweights;
-  vector < vector < double > > matrix_tweights;
-  vector < double > vector_tweights;
-  for ( size_t j = 0; j < n; j++ ){
-    double twe{0};
-    for ( size_t i = 0; i < N; i++ ){
-      for (size_t k = 0; k < i+1; k++ ){ 
-	vector_tweights.push_back( twe );
-      }   
-      matrix_tweights.push_back( vector_tweights );
-      vector_tweights.clear();
-    }
-    tweights.push_back( matrix_tweights );
-    matrix_tweights.clear();
-    }
-  for ( size_t j = 0; j < n; j++ ){
-    for (size_t i = 0; i < N; i++ ){
-      for (size_t k = 0; k < i+1; k++ ){
-	tweights[j][i][k]=un_weights[i][j][k];
+    // begin resampling step (resampling every time)
+    vector < vector < double > > temp_matrix_x;
+    vector < double > temp_x;
+    for ( size_t k = 0; k < j+1; k++ ){
+      if (obs[j][k] == 1) {
+	for ( size_t l = 0; l < n; l++){
+	  temp_x.push_back(new_sample[l][j][k]);
+	}
+	temp_matrix_x.push_back(temp_x);
+	temp_x.clear();
+      }
+      else {
+	vector < double > temp_w;
+	for (size_t l = 0; l < n; l++){
+	  temp_w.push_back(matrix_un_weights[l][k]);
+	}
+	for (size_t l = 0; l < n; l++ ){
+	  discrete_distribution < int > discrete( temp_w.begin(), temp_w.end() );
+	  temp_x.push_back( new_sample[discrete(generator)][j][k] );
+	}
+	temp_matrix_x.push_back(temp_x);
+	temp_x.clear();
       }
     }
-  }
-  cout << "tweights" <<endl;
-  print_matrix(tweights[0]);
-  
-  
-  //some sanity check printing for the first particle
-  //(can be done on any particle changing the value of "part_num")
-  int part_num = 0;
-  //Printing one matrix of the 3 dimensional vector un_weights of the unnormalised weights
-  cout << "printing one of the un_weights matrix" << endl;
-  print_matrix( un_weights[part_num]);
-
-  //Creating a container of 0s of the correct size (lower triangular NxNxn) called "weights"
-  //for the normalised weights
-  vector < vector < double > > matrix_w;
-  vector < double > vector_w;
-  for ( size_t j = 0; j < n; j++ ){
-    double elem;
-    for ( size_t i = 0; i < N; i++ ){
-      for (size_t k = 0; k < i + 1; k++ ){
-	elem = 0;  
-	vector_w.push_back( elem );
-      }   
-      matrix_w.push_back( vector_w );
-      vector_w.clear();
-    }
-    weights.push_back( matrix_w );
-    matrix_w.clear();
-  }
-
-
-  //Normalising the importance weights and puting them in matrix Weights
-  for ( size_t i = 0; i < N; i++ ){
-    for (size_t k = 0; k < i + 1; k++){
-      double sum{0};
-      for (size_t l = 0; l < n; l++ ){
-	sum += tweights[l][i][k];
+    vector < vector < double > > ttmatrix;
+    vector < double > ttvector;
+    for ( size_t k = 0; k < n; k++ ){
+      for ( size_t l = 0; l < j+1; l++){
+	ttvector.push_back(temp_matrix_x[l][k]);
       }
-      for (size_t j = 0; j < n; j++ ){
-	weights[j][i][k] = tweights[j][i][k] / sum;
-      }
+      ttmatrix.push_back(ttvector);
+      ttvector.clear();
     }
+    resampled.push_back(ttmatrix);
+    ttmatrix.clear();
   }
 
-  //Resampling (every time)
-  for (size_t l = 0; l < N; l++ ){
-    vector < vector < double > > weights_each_time;
-    for ( size_t i = 0; i < n; i++ ){
-      vector < vector < double > > temp_matrix;
-      temp_matrix = weights[i];
-      vector < double > temp_vector;
-      for ( size_t j = 0; j < N; j++ ){
-	temp_vector = temp_matrix[l];
-      }
-      weights_each_time.push_back(temp_vector);
-    }
-    for ( size_t i = 0; i < l + 1; i++ ){
-      vector < double > column_vec;
-      for ( size_t k = 0; k < n; k++ ){
-	column_vec.push_back( weights_each_time[k][i] );
-      }
-      vector < double > new_temp;
-      discrete_distribution< int > discrete( column_vec.begin(), column_vec.end() );
-      for ( size_t k = 0; k < n; k++ ){
-	new_temp.push_back( new_sample[discrete(generator)][l][i] );
-      }
-      for ( size_t j = 0; j < n; j++ ){
-	new_sample[j][l][i] = new_temp[j];
-      }
-      new_temp.clear();
-    }
-  }
-  vector < vector < double > > new_sample_last_time2;
-  for ( size_t i = 0; i < n; i++ ){
-    vector < vector < double > > temp_matrix;
-    temp_matrix = new_sample[i];
-    vector < double > temp_vector;
-    for ( size_t j = 0; j < N; j++ ){
-      temp_vector = temp_matrix[N-1];
-    }
-    new_sample_last_time2.push_back(temp_vector);
-  }
-  cout << "printing matrix new_sample_last_time2" << endl;
-  print_matrix(new_sample_last_time2);
-  cout << "printing matrix new_sample_last_time" << endl;
-  print_matrix(new_sam_last_time);
-
-
-
-  //sanity checks for the weights printing the last (current) time N for all particle
-  
-  //Finding the matrix of the unnormalised weights for the last time "un_weights_last_time"
-  vector < vector < double > > un_weights_last_time;
-  for ( size_t i = 0; i < n; i++ ){
-    vector < vector < double > > temp_matrix;
-    temp_matrix = tweights[i];
-    vector < double > temp_vector;
-    for ( size_t j = 0; j < N; j++ ){
-      temp_vector = temp_matrix[N-1];
-    }
-    un_weights_last_time.push_back(temp_vector);
-  }
-  cout << "printing matrix un_weights_last_time" << endl;
-  print_matrix(un_weights_last_time);
-  //Finding the matrix of the weights for the last time "weights_last_time"
-  vector < vector < double > > weights_last_time;
-  for ( size_t i = 0; i < n; i++ ){
-    vector < vector < double > > temp_matrix;
-    temp_matrix = weights[i];
-    vector < double > temp_vector;
-    for ( size_t j = 0; j < N; j++ ){
-      temp_vector = temp_matrix[N-1];
-    }
-    weights_last_time.push_back(temp_vector);
-  }
-  cout << "printing matrix weights_last_time" << endl;
-  print_matrix(weights_last_time);
-
-
-  //Create all the dat files for the plots
-
-
-  //Create a dat file with the values of the sam_last_time
-  //to craete boxplots
-  ofstream outFile4( "./sam_last_time.dat" );
-  outFile4 << endl;
+  //Create .csv files for the plots
+ 
+  //Create a .csv file with the resampled particles
+  ofstream outFile3( "./resampled.csv" );
+  outFile3 << endl;
   for ( size_t lin = 0; lin < n; lin++ ){
     for ( size_t col = 0; col < N; col++ ){
-      outFile4 << sam_last_time[lin][col] << " ";
+      outFile3 << resampled[N-1][lin][col] << ",";
     }
-    outFile4 << endl;
+    outFile3 << endl;
   }
-  outFile4.close();
+  outFile3.close();
 
-  //Create a dat file with the values of the W_N
-  //to craete boxplots
-  ofstream outFile5( "./weights_last_time.dat" );
-  outFile5 << endl;
-  for ( size_t lin = 0; lin < n; lin++ ){
-    for ( size_t col = 0; col < N; col++ ){
-      outFile5 << weights_last_time[lin][col] << " ";
-    }
-    outFile5 << endl;
-  }
-  outFile5.close();
-
-  //Create a dat file with the resampled particles
-  //to craete boxplots
-  ofstream outFile6( "./resample.dat" );
-  outFile6 << endl;
-  for ( size_t lin = 0; lin < n; lin++ ){
-    for ( size_t col = 0; col < N; col++ ){
-      outFile6 << new_sample_last_time2[lin][col] << " ";
-    }
-    outFile6 << endl;
-  }
-  outFile6.close();
+  cout << "another test" << endl;
   
   return 0;
   
